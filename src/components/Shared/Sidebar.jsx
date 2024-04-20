@@ -16,13 +16,7 @@ export default function Sidebar() {
     setIsTopMenuSelected(true);
   };
 
-  // useEffect(() => {
-  //   // Close all bottom submenus when a top menu is selected
-  //   if (isTopMenuSelected) {
-  //     setOpenSubMenu(null);
-  //     setIsTopMenuSelected(false); // Reset to false after closing the submenus
-  //   }
-  // }, [pathname, isTopMenuSelected]);
+   
   return (
     <div className='flex flex-col bg-green-600 w-45 pl-1 rounded-l-lg sm:w-44'>
       <div className="flex items-center gap-2 px-1 py-3">

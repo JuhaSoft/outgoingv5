@@ -608,7 +608,7 @@ export default function References() {
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75">
           <div className="bg-white p-8 rounded-lg shadow-md w-96">
             <h2 className="text-lg font-bold mb-4">
-              {editData ? "Edit Station" : "Add Station"}
+              {editData ? "Edit Reference" : "Add Reference"}
             </h2>
             {error && <p className="text-red-500">{error}</p>}
             <form onSubmit={handleSubmit}>

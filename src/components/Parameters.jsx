@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import Select from "react-select";
 import axios from "axios";
 import ReactPaginate from "react-paginate";
-import { format } from "date-fns";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Modal from "./Shared/Modal";
@@ -22,7 +21,8 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-
+import { FaArrowUp, FaArrowDown } from "react-icons/fa";
+import { MdKeyboardArrowDown,MdKeyboardArrowUp } from "react-icons/md";
 export default function Parameters() {
   const appConfig = window.globalConfig || {
     siteName: process.env.REACT_APP_SITENAME,
@@ -34,7 +34,6 @@ export default function Parameters() {
   const [StationIDDelete, setStationIDDelete] = useState("");
   const [saveData, setSaveData] = useState(Boolean);
   const [dataProduct, setdataProduct] = useState([]);
-  const [tbldata, settbldata] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [totalItems, setTotalItems] = useState(10);
   const [totalPages, SetTotalPages] = useState(1);
@@ -42,7 +41,6 @@ export default function Parameters() {
   const [pageSize, SetPageSize] = useState(10);
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [comboNames, setComboNames] = useState([]);
-  const [selectedOptionCombo, setSelectedOptionCombo] = useState(null);
   const [selectedReference, setSelectedReference] = useState(null);
   const [selectedOption, setSelectedOption] = useState({
     text: "All Categories",
@@ -55,7 +53,6 @@ export default function Parameters() {
     { text: "Description", value: "Description" },
     { text: "Order", value: "Order" },
   ];
-  const [editDataFromApi, setEditDataFromApi] = useState(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [editData, setEditData] = useState(null);
@@ -67,31 +64,50 @@ export default function Parameters() {
 
   const openModal = () => {
     setShowModal(true);
+    // Reset nilai state yang terkait dengan data di modal ke nilai awal
+    setFormData({
+      DataReferenceId: "",
+      RefereceName: "",
+      ParameterChecks: [],
+    });
+    setValIn([]);
+    setSelectedReference(null); // Reset juga selected reference jika diperlukan
   };
 
-  const handleEdit = async (data) => {
-    setEditData(data);
+  const handleEdit = async (dataItem) => {
+    setEditData(dataItem);
     setShowModal(true);
     try {
-      const response = await axios.get(`${api}/api/ParamChecks/${data.Id}`);
+      const allParameterChecks = dataItem.ParameterChecks.map((check) => ({
+        ...check,
+        // Jika Anda ingin tetap menyertakan Id, Anda bisa tambahkan baris berikut
+        // Id: check.Id,
+      }));
       setFormData({
-        ...response.data,
-        RefereceName: response.data.RefereceName,
-        DataReferenceId: response.data.DataReferenceId,
+        ...formData,
+        RefereceName: dataItem.RefereceName,
+        DataReferenceId: dataItem.Id,
+        ParameterChecks: allParameterChecks,
       });
       setSelectedReference({
-        value: response.data.Id,
-        label: response.data.RefereceName,
+        value: dataItem.Id,
+        label: dataItem.RefereceName,
       });
+      setValIn(allParameterChecks);
     } catch (error) {
-      toast.error(error.response.data);
+      toast.error(error.response.dataItem);
     }
   };
+
   const handleUpdate = async () => {
     try {
+      const newFormData = {
+        ...formData,
+        ParameterChecks: dynamicInputsData,
+      };
       const response = await axios.put(
         `${api}/api/ParamChecks/${editData.Id}`,
-        formData
+        newFormData
       );
       // Menampilkan notifikasi sukses
       toast.success("Data berhasil diperbarui");
@@ -134,7 +150,21 @@ export default function Parameters() {
       setSaveData(true);
     } catch (error) {
       // Tangani kesalahan
-      toast.error("Gagal menghapus data");
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+
+        if (error.response.status === 401) {
+          // Unauthorized, handle accordingly (e.g., redirect to login page)
+          toast.error("Unauthorized request");
+        }
+      } else if (error.request) {
+        // The request was made but no response was received
+        toast.error("Request made but no response received:", error.request);
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        toast.error("Error during request setup:", error.message);
+      }
     }
     setOpenDlg(false);
   };
@@ -154,39 +184,28 @@ export default function Parameters() {
       RefereceName: "",
     });
     setEditData(null);
-    setEditDataFromApi(null);
   };
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-    // formData.RefereceName
-  };
   const handlerecordPerPage = (event) => {
     event.preventDefault();
     const page = event.target.value;
     SetPageSize(page);
   };
   const handleSubmit = async (e) => {
-    
-    console.log("Form Data:", formData);
-    console.log("Submitting form data...");
     e.preventDefault();
     if (editData) {
       handleUpdate();
     } else {
-      console.log("Coba simpan");
       try {
         const newFormData = {
           ...formData,
           ParameterChecks: dynamicInputsData,
         };
         setFormData(newFormData);
-        console.log(`${api}/api/ParamChecks`, newFormData);
-        const response = await axios.post(`${api}/api/ParamChecks`, newFormData);
+        const response = await axios.post(
+          `${api}/api/ParamChecks`,
+          newFormData
+        );
 
         toast.success("Data berhasil disimpan");
         setFormData({
@@ -198,7 +217,6 @@ export default function Parameters() {
       } catch (error) {
         toast.error(error.response.data);
       }
-      
     }
   };
 
@@ -216,27 +234,52 @@ export default function Parameters() {
   useEffect(() => {
     fetchData("Change", currentPage, pageSize);
   }, [pageSize, currentPage, saveData, showModal, openDlg]);
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      const nextInput = e.target.form.querySelector(
-        "input:not([disabled]):not([readonly])"
-      );
 
-      if (nextInput) {
-        nextInput.focus();
-      }
-    }
+  // const handleMoveUp = (index) => {
+  //   const updatedValIn = [...valIn];
+  //   const temp = updatedValIn[index];
+  //   updatedValIn[index] = updatedValIn[index - 1];
+  //   updatedValIn[index - 1] = temp;
+  //   setValIn(updatedValIn);
+  // };
+
+  // const handleMoveDown = (index) => {
+  //   const updatedValIn = [...valIn];
+  //   const temp = updatedValIn[index];
+  //   updatedValIn[index] = updatedValIn[index + 1];
+  //   updatedValIn[index + 1] = temp;
+  //   setValIn(updatedValIn);
+  // };
+  const handleMoveUp = (index) => {
+    if (index === 0) return; // Tidak dapat memindahkan elemen pertama ke atas
+
+    const updatedValIn = [...valIn];
+    // Tukar posisi elemen dengan elemen sebelumnya
+    [updatedValIn[index], updatedValIn[index - 1]] = [
+      updatedValIn[index - 1],
+      updatedValIn[index],
+    ];
+    // Perbarui nilai Order untuk elemen yang terpengaruh
+    updatedValIn[index].Order = index + 1;
+    updatedValIn[index - 1].Order = index;
+    setValIn(updatedValIn);
   };
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      const inputs = e.target.form.elements;
-      const index = Array.prototype.indexOf.call(inputs, e.target);
-      if (inputs[index + 1]) {
-        inputs[index + 1].focus();
-      }
-      e.preventDefault();
-    }
+
+  const handleMoveDown = (index) => {
+    if (index === valIn.length - 1) return; // Tidak dapat memindahkan elemen terakhir ke bawah
+
+    const updatedValIn = [...valIn];
+    // Tukar posisi elemen dengan elemen setelahnya
+    [updatedValIn[index], updatedValIn[index + 1]] = [
+      updatedValIn[index + 1],
+      updatedValIn[index],
+    ];
+    // Perbarui nilai Order untuk elemen yang terpengaruh
+    updatedValIn[index].Order = index + 1;
+    updatedValIn[index + 1].Order = index + 2;
+    setValIn(updatedValIn);
   };
+
   const handleSearch = (event) => {
     event.preventDefault();
 
@@ -246,7 +289,6 @@ export default function Parameters() {
     const fetchComboNames = async () => {
       try {
         const response = await axios.get(`${api}/api/DataReference`);
-        // Format data dari API sesuai dengan kebutuhan react-select
         const formattedData = response.data.Items.$values.map((item) => ({
           value: item.Id,
           label: item.RefereceName,
@@ -318,7 +360,7 @@ export default function Parameters() {
       toast.error(`Error fetching data:${dari} -  ${error.message}`, {});
     }
   };
-  function Row({ dataItem, index }) {
+  function Row({ dataItem, index, handleEdit, confirmDelete }) {
     const [open, setOpen] = React.useState(false);
 
     return (
@@ -328,8 +370,7 @@ export default function Parameters() {
             "& > *": {
               borderBottom: "unset",
             },
-
-            backgroundColor: index % 2 === 0 ? "white" : "lightgrey", // Warna latar belakang baris bergantung pada indeks (ganjil/genap)
+            backgroundColor: index % 2 === 0 ? "white" : "lightgrey",
           }}
           style={{ height: "20px" }}
         >
@@ -338,7 +379,7 @@ export default function Parameters() {
               aria-label="expand row"
               size="small"
               onClick={() => setOpen(!open)}
-              sx={{ p: 1 }} // Set padding to 1
+              sx={{ p: 1 }}
             >
               {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
             </IconButton>
@@ -347,14 +388,18 @@ export default function Parameters() {
             {dataItem.RefereceName}
           </TableCell>
           <TableCell align="right">
-            <IconButton aria-label="edit" sx={{ color: "blue" }}>
-              {" "}
-              {/* Edit button color set to yellow */}
+            <IconButton
+              aria-label="edit"
+              sx={{ color: "blue" }}
+              onClick={(event) => handleEdit(dataItem, event)} // Passing dataItem to handleEdit
+            >
               <EditIcon />
             </IconButton>
-            <IconButton aria-label="delete" sx={{ color: "red" }}>
-              {" "}
-              {/* Delete button color set to red */}
+            <IconButton
+              aria-label="delete"
+              sx={{ color: "red" }}
+              onClick={() => confirmDelete(dataItem.Id, dataItem.RefereceName)}
+            >
               <DeleteIcon />
             </IconButton>
           </TableCell>
@@ -389,17 +434,29 @@ export default function Parameters() {
       </>
     );
   }
-  const [inputValues, setInputValues] = useState([""]); // State untuk menyimpan nilai input box
+
   const [valIn, setValIn] = useState([]);
   const handleAddIn = () => {
     const abc = [...valIn, []];
     setValIn(abc);
   };
+
   const handleChangeIn = (onChangeValue, i) => {
-    const inputdata = [...valIn];
-    inputdata[i] = onChangeValue.target.value;
-    setValIn(inputdata);
+    const updatedValIn = [...valIn];
+    if (i < updatedValIn.length) {
+      updatedValIn[i] = {
+        Description: onChangeValue.target.value,
+        Order: i + 1,
+      };
+    } else {
+      updatedValIn.push({
+        Description: onChangeValue.target.value,
+        Order: updatedValIn.length + 1,
+      });
+    }
+    setValIn(updatedValIn);
   };
+
   const handleDeleteIn = (i) => {
     const deletVal = [...valIn];
     deletVal.splice(i, 1);
@@ -407,32 +464,15 @@ export default function Parameters() {
   };
 
   const dynamicInputsData = valIn.map((value, index) => ({
-    Description: value,
+    ...value, // Menyalin properti dari objek value
     Order: index + 1, // Menambahkan nomor urutan
   }));
-  const handleMoveUp = (index) => {
-    if (index === 0) return; // Jika sudah di posisi paling atas, jangan lakukan apa-apa
-    const updatedInputs = [...valIn];
-    const temp = updatedInputs[index - 1];
-    updatedInputs[index - 1] = updatedInputs[index];
-    updatedInputs[index] = temp;
-    setValIn(updatedInputs);
-  };
-  
-  const handleMoveDown = (index) => {
-    if (index === valIn.length - 1) return; // Jika sudah di posisi paling bawah, jangan lakukan apa-apa
-    const updatedInputs = [...valIn];
-    const temp = updatedInputs[index + 1];
-    updatedInputs[index + 1] = updatedInputs[index];
-    updatedInputs[index] = temp;
-    setValIn(updatedInputs);
-  };
   return (
-    <div className="z-0 ">
-      <div className="fixed top-0 right-4 mb-4 mr-2 mt-11 z-30">
+    <div className="z-0 sm:w-full lg:w-3/4">
+      <div className="fixed top-0 mb-2 z-30 mt-11 sm:mt-24 md:mt-11 lg:mt-11 xl:mt-11">
         <button
           onClick={openModal}
-          className=" bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+          className="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
         >
           ADD Parameter
         </button>
@@ -554,7 +594,13 @@ export default function Parameters() {
                   </TableHead>
                   <TableBody>
                     {dataProduct.map((item, index) => (
-                      <Row key={item.Id} dataItem={item} index={index} />
+                      <Row
+                        key={item.Id}
+                        dataItem={item}
+                        index={index}
+                        handleEdit={handleEdit}
+                        confirmDelete={confirmDelete}
+                      />
                     ))}
                   </TableBody>
                 </Table>
@@ -667,15 +713,13 @@ export default function Parameters() {
         </div>
       </div>
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75">
-          <div className="bg-white p-8 rounded-lg shadow-md w-96">
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75 ">
+          <div className="bg-white p-8 rounded-lg shadow-md w-1/3">
             <h2 className="text-lg font-bold mb-4">
               {editData ? "Edit Parameter" : "Add Parameter"}
             </h2>
             {error && <p className="text-red-500">{error}</p>}
-            <form 
-            id="parameterForm"
-            onSubmit={handleSubmit}>
+            <form id="parameterForm" onSubmit={handleSubmit}>
               <label
                 htmlFor="input1"
                 className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
@@ -690,6 +734,46 @@ export default function Parameters() {
               />
               {selectedReference && (
                 <div className="mb-7">
+                  {valIn.map((data, i) => (
+                    <div className="mb-4 flex items-center" key={i}>
+                      <input
+                        value={data.Description}
+                        onChange={(e) => handleChangeIn(e, i)}
+                        className="border rounded py-2 px-3 mr-2 w-3/4"
+                      />
+                      <div className="flex flex-col">
+                        <button
+                          type="button"
+                          onClick={() => handleMoveUp(i)}
+                          disabled={i === 0} // Nonaktifkan tombol Up jika dynamic input pertama
+                          className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2 ${
+                            i === 0 ? "opacity-50 cursor-not-allowed" : ""
+                          }w-auto`}
+                        >
+                          <MdKeyboardArrowUp />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMoveDown(i)}
+                          disabled={i === valIn.length - 1} // Nonaktifkan tombol Down jika dynamic input terakhir
+                          className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2 ${
+                            i === valIn.length - 1
+                              ? "opacity-50 cursor-not-allowed"
+                              : ""
+                          } w-auto`}
+                        >
+                          <MdKeyboardArrowDown />
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteIn(i)}
+                        className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded ml-2"
+                      >
+                        <DeleteIcon />
+                      </button>
+                    </div>
+                  ))}
                   <button
                     type="button" // Tambahkan atribut type="button" di sini
                     onClick={() => handleAddIn()}
@@ -697,43 +781,25 @@ export default function Parameters() {
                   >
                     Next Parameter
                   </button>
-                  {valIn.map((data, i) => {
-                    return (
-                      <div className="mb-4" key={i}>
-                        <input
-                          value={data}
-                          onChange={(e) => handleChangeIn(e, i)}
-                          className="border rounded py-2 px-3 mr-2"
-                        />
-                        <button
-                          onClick={() => handleDeleteIn(i)}
-                          className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-                        >
-                          x
-                        </button>
-                      </div>
-                    );
-                  })}
                 </div>
               )}
               <div className="flex justify-between">
-              <button
-                type="submit"
-                // onClick={handleSubmit}
-                className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
-              >
-                {editData ? "Update" : "Save"}
-              </button>
-              <button
-                type="button"
-                onClick={closeModal}
-                className="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-gray-300"
-              >
-                Close
-              </button>
-            </div>
+                <button
+                  type="submit"
+                  // onClick={handleSubmit}
+                  className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                >
+                  {editData ? "Update" : "Save"}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-gray-300"
+                >
+                  Close
+                </button>
+              </div>
             </form>
-            
           </div>
         </div>
       )}

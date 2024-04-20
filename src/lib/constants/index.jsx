@@ -7,6 +7,7 @@ import {
 	HiOutlineAnnotation,
 	HiOutlineQuestionMarkCircle
 } from 'react-icons/hi'
+import { FaRegCircleUser } from "react-icons/fa6";
 import { HiOutlineCog } from "react-icons/hi";
 import { FaCheckDouble } from "react-icons/fa";
 export const DASHBOARD_SIDEBAR_LINKS = [
@@ -42,13 +43,7 @@ export const DASHBOARD_SIDEBAR_BOTTOM_LINKS = [
 		icon: <HiOutlineCog />,
 		hasSubMenu: true,
 		submenu: [
-			{
-				key: 'CollapsibleTables',
-				label: 'Collapsible Table',
-				path: '/CollapsibleTable',
-				icon: <HiOutlineCog />
-			  },
-			{
+						{
 				key: 'Parameters',
 				label: 'Parameter',
 				path: '/Parameters',
@@ -82,11 +77,28 @@ export const DASHBOARD_SIDEBAR_BOTTOM_LINKS = [
 		  
 		]
 	  },
+	
 	{
-		key: 'support',
-		label: 'Help & Support',
-		path: '/support',
-		icon: <HiOutlineQuestionMarkCircle />,
-		hasSubMenu: false
+		key: 'User',
+		label: 'USER',
+		path: '',
+		icon: <FaRegCircleUser />,
+		hasSubMenu: true,
+		submenu: [
+			{
+				key: 'LoginUser',
+				label: 'Login',
+				path: '/LoginUser',
+				icon: <HiOutlineCog />
+			  },
+			
+		  {
+			key: 'user-registration',
+			label: 'User',
+			path: '/settings/user-registration',
+			icon: <HiOutlineCog />
+		  },
+		  
+		]
 	}
 ]

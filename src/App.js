@@ -14,6 +14,7 @@ import Lines from './components/Lines'
 import References from './components/References'
 import Parameters from './components/Parameters'
 import LastStations from './components/LastStations'
+import LoginForm from './components/Users/LoginForm'
 // import CollapsibleTable from './components/CollapsibleTable'
 
 const App = () => {
@@ -34,6 +35,7 @@ const App = () => {
         </Route>
         <Route path='login' element={<div>This login page</div>} />
         <Route path="*" element={<PageNotFound />} />
+        <Route path="LoginUser" element={<LoginForm />} />
       </Routes>
     </Router>
     // <main className="w-full bg-slate-200 h-screen flex justify-between items-start">

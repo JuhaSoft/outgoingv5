@@ -259,8 +259,8 @@ export default function Lines() {
   };
 
   return (
-    <div className="z-0 ">
-      <div className="fixed top-0 right-4 mb-4 mr-2 mt-11 z-30">
+    <div className="z-0 sm:w-full lg:w-3/4">
+    <div className="fixed top-0 mb-2 z-30 mt-11 sm:mt-24 md:mt-11 lg:mt-11 xl:mt-11">
         <button
           onClick={openModal}
           className=" bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
