@@ -15,6 +15,8 @@ import References from './components/References'
 import Parameters from './components/Parameters'
 import LastStations from './components/LastStations'
 import LoginForm from './components/Users/LoginForm'
+import LoadingPage from './components/Shared/LoadingPage'
+import Users from './components/Users/Users'
 // import CollapsibleTable from './components/CollapsibleTable'
 
 const App = () => {
@@ -30,6 +32,8 @@ const App = () => {
           <Route path='References' element={<References />} />
           <Route path='Parameters' element={<Parameters />} />
           <Route path='LastStations' element={<LastStations />} />
+          <Route path='LoadingPage' element={<LoadingPage />} />
+          <Route path='Users' element={<Users />} />
           {/* <Route path='CollapsibleTables' element={<CollapsibleTable/>} /> */}
           
         </Route>

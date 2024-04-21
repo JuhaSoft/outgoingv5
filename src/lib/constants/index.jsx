@@ -16,6 +16,7 @@ export const DASHBOARD_SIDEBAR_LINKS = [
 		label: 'Dashboard',
 		path: '/',
 		icon: <HiOutlineViewGrid />,
+		Access:["All"],
 		hasSubMenu: false
 	},
 	{
@@ -23,6 +24,7 @@ export const DASHBOARD_SIDEBAR_LINKS = [
 		label: 'Check Product',
 		path: '/products',
 		icon: <FaCheckDouble />,
+		Access:["All"],
 		hasSubMenu: false
 	},
 	{
@@ -30,6 +32,7 @@ export const DASHBOARD_SIDEBAR_LINKS = [
 		label: 'Work Order',
 		path: '/orders',
 		icon: <HiOutlineShoppingCart />,
+		Access:["All"],
 		hasSubMenu: false
 	},
 	
@@ -42,11 +45,13 @@ export const DASHBOARD_SIDEBAR_BOTTOM_LINKS = [
 		path: '',
 		icon: <HiOutlineCog />,
 		hasSubMenu: true,
+		Access:["Admin","Staf","LI","Teknisi"],
 		submenu: [
 						{
 				key: 'Parameters',
 				label: 'Parameter',
 				path: '/Parameters',
+				Access:["Admin","Staf","LI","Teknisi"],
 				icon: <HiOutlineCog />
 			  },
 			
@@ -54,51 +59,33 @@ export const DASHBOARD_SIDEBAR_BOTTOM_LINKS = [
 				key: 'References',
 				label: 'Reference',
 				path: '/References',
+				Access:["Admin","Staf","LI","Teknisi"],
 				icon: <HiOutlineCog />
 			  },
 			  {
 				key: 'LastStations',
 				label: 'Last Station',
 				path: '/LastStations',
+				Access:["Admin","Staf","LI","Teknisi"],
 				icon: <HiOutlineCog />
 			  },
 			  {
 				key: 'Lines',
 				label: 'Line',
 				path: '/Lines',
+				Access:["Admin","Staf","LI","Teknisi"],
 				icon: <HiOutlineCog />
 			  },
 		  {
-			key: 'user-registration',
-			label: 'User',
-			path: '/settings/user-registration',
+			key: 'Users',
+			label: 'Users',
+			path: '/Users',
+			Access:["Admin","Staf"],
 			icon: <HiOutlineCog />
 		  },
 		  
 		]
 	  },
 	
-	{
-		key: 'User',
-		label: 'USER',
-		path: '',
-		icon: <FaRegCircleUser />,
-		hasSubMenu: true,
-		submenu: [
-			{
-				key: 'LoginUser',
-				label: 'Login',
-				path: '/LoginUser',
-				icon: <HiOutlineCog />
-			  },
-			
-		  {
-			key: 'user-registration',
-			label: 'User',
-			path: '/settings/user-registration',
-			icon: <HiOutlineCog />
-		  },
-		  
-		]
-	}
+	
 ]

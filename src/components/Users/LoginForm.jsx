@@ -27,6 +27,7 @@ const LoginForm = ({ history }) => {
       localStorage.setItem('UserId', data.Id); // Simpan token ke local storage
       localStorage.setItem('username', data.UserName); // Simpan token ke local storage
       localStorage.setItem('DisplayName', data.DisplayName); // Simpan token ke local storage
+      localStorage.setItem('Role', data.Role); // Simpan token ke local storage
 
       // Redirect ke halaman sebelumnya jika ada, jika tidak ke halaman utama
       if (history) {
