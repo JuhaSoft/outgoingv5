@@ -3,11 +3,12 @@ import axios from 'axios';
 import { useDropzone } from 'react-dropzone';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
 const EditProfileForm = () => {
-const appConfig = window.globalConfig || {
-        siteName: process.env.REACT_APP_SITENAME,
-      };
-      const api = appConfig.APIHOST;
+  const appConfig = window.globalConfig || {
+    siteName: process.env.REACT_APP_SITENAME,
+  };
+  const api = appConfig.APIHOST;
   const [displayName, setDisplayName] = useState('');
   const [userName, setUserName] = useState('');
   const [image, setImage] = useState(null);
@@ -19,28 +20,28 @@ const appConfig = window.globalConfig || {
     const fetchData = async () => {
       try {
         const apiUrl = `${api}/api/Account/`;
-
         const config = {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         };
-
         const response = await axios.get(apiUrl, config);
         const { DisplayName, UserName, Image } = response.data;
         setDisplayName(DisplayName);
         setUserName(UserName);
-        setImage(Image);
-        setPreviewImage(Image); // Untuk preview image saat pertama kali load
+        if (Image) {
+          // Combine server URL with Image path
+          const fullImageUrl = `${api}${Image}`;
+          setPreviewImage(fullImageUrl);
+        }
       } catch (error) {
         console.error('Failed to fetch profile data:', error.response.data);
         setErrorMessage(error.response.data.message);
       }
     };
-
     fetchData();
   }, []);
-
+console.log('previewImage',previewImage)
   const onDrop = (acceptedFiles) => {
     const file = acceptedFiles[0];
     const reader = new FileReader();
@@ -55,25 +56,20 @@ const appConfig = window.globalConfig || {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
-      
       const apiUrl = `${api}/api/Account/updateProfile`;
-
       const formData = new FormData();
       formData.append('DisplayName', displayName);
       formData.append('UserName', userName);
       if (image) {
         formData.append('Image', image);
       }
-
       const config = {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`
         }
       };
-
       const response = await axios.put(apiUrl, formData, config);
       console.log('Profile updated successfully:', response.data);
       // Reset form fields
@@ -112,15 +108,18 @@ const appConfig = window.globalConfig || {
             className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
           />
         </div>
-        
         <div className="mb-6">
           <label className="block text-gray-700 text-sm font-bold mb-2">Profile Picture</label>
           <div {...getRootProps()} className="dropzone">
             <input {...getInputProps()} />
             {previewImage ? (
-              <img src={previewImage} alt="Preview" className="rounded-full w-32 h-32 mx-auto" />
+              <div className="bg-gray-100 p-4 rounded-lg">
+                <img src={previewImage} alt="Preview" className="rounded-full w-32 h-32 mx-auto mb-4" />
+              </div>
             ) : (
-              <div className="text-center">Drop an image here or click to upload</div>
+              <div className="bg-gray-100 p-4 rounded-lg flex flex-col items-center justify-center">
+                <p className="text-gray-500 mb-2">Drop an image here or click to upload</p>
+              </div>
             )}
           </div>
         </div>

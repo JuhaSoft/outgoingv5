@@ -18,6 +18,7 @@ import LoginForm from './components/Users/LoginForm'
 import LoadingPage from './components/Shared/LoadingPage'
 import Users from './components/Users/Users'
 import EditProfileForm from './components/Users/EditProfileForm'
+import ChangePassword from './components/Users/ChangePassword'
 // import CollapsibleTable from './components/CollapsibleTable'
 
 const App = () => {
@@ -36,6 +37,7 @@ const App = () => {
         <Route path='LoadingPage' element={<LoadingPage />} />
         <Route path='Users' element={<Users />} />
         <Route path='Users/EditProfileForm' element={<EditProfileForm />} />
+        <Route path='Users/ChangePassword' element={<ChangePassword />} />
         {/* <Route path='CollapsibleTables' element={<CollapsibleTable/>} /> */}
         
       </Route>

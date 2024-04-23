@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import useStore from '../Shared/useStore';
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 const LoginForm = ({ history }) => {
+  const appConfig = window.globalConfig || {
+    siteName: process.env.REACT_APP_SITENAME,
+  };
+  const api = appConfig.APIHOST;
   const [error, setError] = useState(null);
   const setUser = useStore(state => state.setUser);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (values, { setSubmitting }) => {
     try {
-      const response = await fetch('https://localhost:5001/api/Account/login', {
+      const response = await fetch(`${api}/api/Account/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -28,6 +34,7 @@ const LoginForm = ({ history }) => {
       localStorage.setItem('username', data.UserName); // Simpan token ke local storage
       localStorage.setItem('DisplayName', data.DisplayName); // Simpan token ke local storage
       localStorage.setItem('Role', data.Role); // Simpan token ke local storage
+      localStorage.setItem('Image', data.Image); // Simpan token ke local storage
 
       // Redirect ke halaman sebelumnya jika ada, jika tidak ke halaman utama
       if (history) {
@@ -41,7 +48,9 @@ const LoginForm = ({ history }) => {
       setSubmitting(false);
     }
   };
-
+  const toggleShowPassword = () => {
+    setShowPassword(prevState => !prevState);
+  };
   return (
     <div className="flex justify-center items-center h-screen">
       <Formik
@@ -75,17 +84,27 @@ const LoginForm = ({ history }) => {
               />
               <ErrorMessage name="username" component="div" className="text-red-500 text-xs mt-1" />
             </div>
-            <div className="mb-6">
+            <div className="mb-6 relative">
               <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
                 Password
               </label>
               <Field
                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 name="password"
                 id="password"
                 placeholder="************"
               />
+              <div
+                className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
+                onClick={toggleShowPassword}
+              >
+                {showPassword ? (
+                  <FaEyeSlash className="h-5 w-5 text-gray-500" />
+                ) : (
+                  <FaEye className="h-5 w-5 text-gray-500" />
+                )}
+              </div>
               <ErrorMessage name="password" component="div" className="text-red-500 text-xs mt-1" />
             </div>
             <div className="flex items-center justify-between">

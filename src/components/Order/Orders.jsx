@@ -24,6 +24,8 @@ export default function Orders() {
     text: "All Categories",
     value: "All",
   }); // State untuk menyimpan opsi yang dipilih
+  let token = localStorage.getItem("token");
+  let userId = localStorage.getItem("UserId");
 
   const dropdownOptions = [
     { text: "All Categories", value: "All" },
@@ -45,7 +47,7 @@ export default function Orders() {
     WoQTY: "",
     WoStatus: "Open",
     // WoCreate: moment(new Date()).format('YYYY-MM-DD HH:mm:ss'),
-    UserIdCreate: "d4f291b1-b9f8-45ae-84a3-55fed3ba6364",
+    UserIdCreate: userId,
     WOisDeleted: false,
   });
 
@@ -62,7 +64,7 @@ export default function Orders() {
       WoReferenceID: "",
       WoQTY: "",
       WoStatus: "Open",
-      UserIdCreate: "5B5A00BD-8851-455D-8104-4CCCF35F0EFF",
+      UserIdCreate: userId,
       WOisDeleted: false,
     });
   };
@@ -82,10 +84,13 @@ export default function Orders() {
     e.preventDefault();
  
     try {
-      const response = await axios.post(
-        `${api}/api/WO`,
-        formData
-      );
+      const response = await axios.post(`${api}/api/WO`, formData, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
 
       // Menampilkan notifikasi sukses
       toast.success("Data berhasil disimpan");
@@ -212,14 +217,7 @@ export default function Orders() {
 
   return (
     <div className="z-0 ">
-      <div className="fixed top-0 right-4 mb-4 mr-2 mt-11 z-30">
-        <button
-          onClick={openModal}
-          className=" bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
-        >
-          ADD WO
-        </button>
-      </div>
+      
       {/* <button
         type="button"
         className="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800 absolute -top-3 left-3"
@@ -321,6 +319,14 @@ export default function Orders() {
       </form>
 
       <div className="overflow-x-auto   shadow-md sm:rounded-lg mt-6">
+        <div className="fixed top-0 right-4 mb-4 mr-2 mt-11 z-30">
+        <button
+          onClick={openModal}
+          className=" bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+        >
+          ADD Order
+        </button>
+      </div>
         <section className="container mx-auto p-2 font-mono hidden sm:table w-full">
           <div className="w-full mb-2 overflow-hidden rounded-lg shadow-lg">
             <div className="w-full overflow-x-auto">
