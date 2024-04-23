@@ -1,28 +1,13 @@
 import React, { useEffect, useState } from "react";
-import Select from "react-select";
+import { Link } from "react-router-dom";
+// import globalConfig from '../../config'
 import axios from "axios";
 import ReactPaginate from "react-paginate";
+import { format } from "date-fns";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Modal from "./Shared/Modal";
+import Modal from "../Shared/Modal";
 import { FaRegTrashAlt } from "react-icons/fa";
-import Box from "@mui/material/Box";
-import Collapse from "@mui/material/Collapse";
-import IconButton from "@mui/material/IconButton";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import Typography from "@mui/material/Typography";
-import Paper from "@mui/material/Paper";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import { FaArrowUp, FaArrowDown } from "react-icons/fa";
-import { MdKeyboardArrowDown,MdKeyboardArrowUp } from "react-icons/md";
 export default function Users() {
   const appConfig = window.globalConfig || {
     siteName: process.env.REACT_APP_SITENAME,
@@ -34,14 +19,11 @@ export default function Users() {
   const [StationIDDelete, setStationIDDelete] = useState("");
   const [saveData, setSaveData] = useState(Boolean);
   const [dataProduct, setdataProduct] = useState([]);
+  const [tbldata, settbldata] = useState("");
   const [showModal, setShowModal] = useState(false);
-  const [totalItems, setTotalItems] = useState(10);
-  const [totalPages, SetTotalPages] = useState(1);
-  const [currentPage, SetCurrentPage] = useState(1);
-  const [pageSize, SetPageSize] = useState(10);
   const [dropdownVisible, setDropdownVisible] = useState(false);
-  const [comboNames, setComboNames] = useState([]);
-  const [selectedReference, setSelectedReference] = useState(null);
+  const [lineNames, setLineNames] = useState([]);
+  let token = localStorage.getItem("token");
   const [selectedOption, setSelectedOption] = useState({
     text: "All Categories",
     value: "All",
@@ -49,66 +31,70 @@ export default function Users() {
 
   const dropdownOptions = [
     { text: "All Categories", value: "All" },
-    { text: "Reference name", value: "RefereceName" },
-    { text: "Description", value: "Description" },
-    { text: "Order", value: "Order" },
+    { text: "User Name", value: "UserName" },
+    { text: "Role", value: "Role" },
+    { text: "Status", value: "IsActive	" },
   ];
+  const [editDataFromApi, setEditDataFromApi] = useState(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [editData, setEditData] = useState(null);
 
   const [formData, setFormData] = useState({
-    DataReferenceId: "",
-    RefereceName: "",
+    DisplayName: "",
+    UserName: "",
+    Password:"Pass1234",
+    Role: "",
+    IsActive: true,
   });
 
   const openModal = () => {
     setShowModal(true);
-    // Reset nilai state yang terkait dengan data di modal ke nilai awal
-    setFormData({
-      DataReferenceId: "",
-      RefereceName: "",
-      ParameterChecks: [],
-    });
-    setValIn([]);
-    setSelectedReference(null); // Reset juga selected reference jika diperlukan
   };
 
-  const handleEdit = async (dataItem) => {
-    setEditData(dataItem);
+  const handleEdit = async (data) => {
+    setEditData(data);
     setShowModal(true);
+    
     try {
-      const allParameterChecks = dataItem.ParameterChecks.map((check) => ({
-        ...check,
-        // Jika Anda ingin tetap menyertakan Id, Anda bisa tambahkan baris berikut
-        // Id: check.Id,
-      }));
-      setFormData({
-        ...formData,
-        RefereceName: dataItem.RefereceName,
-        DataReferenceId: dataItem.Id,
-        ParameterChecks: allParameterChecks,
+      const response = await axios.get(`${api}/api/Account/${data.Id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       });
-      setSelectedReference({
-        value: dataItem.Id,
-        label: dataItem.RefereceName,
-      });
-      setValIn(allParameterChecks);
+      setEditDataFromApi(response.data);
+      // Set formData with proper Role and IsActive values
+      const formDataWithRole = {
+        ...response.data,
+        Role: response.data.Role ? response.data.Role : "Select Role",
+        IsActive: response.data.IsActive ? "true" : "false",
+        Image:response.data.Image ? response.data.Image : ""
+      };
+      setFormData(formDataWithRole);
     } catch (error) {
-      toast.error(error.response.dataItem);
+      toast.error(error.response.data);
     }
   };
-
+ 
+  
   const handleUpdate = async () => {
     try {
-      const newFormData = {
-        ...formData,
-        ParameterChecks: dynamicInputsData,
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`, // Ganti yourAuthTokenHere dengan token yang sesuai
+        },
       };
+  
+      const updateData = {
+        DisplayName: "Nama yang ingin diperbarui", // Ganti dengan nilai yang sesuai
+      };
+  
       const response = await axios.put(
-        `${api}/api/ParamChecks/${editData.Id}`,
-        newFormData
+        `${api}/api/Account/update`,
+        formData,
+        config
       );
+  
       // Menampilkan notifikasi sukses
       toast.success("Data berhasil diperbarui");
       // Tutup modal
@@ -140,31 +126,33 @@ export default function Users() {
       }
     }
   };
+  
+  
 
   const handleDelete = async (Id) => {
+
     try {
-      await axios.delete(`${api}/api/ParamChecks/${Id}`);
+
+     
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`, // Ganti yourAuthTokenHere dengan token yang sesuai
+        },
+      };
+      const dataToSend = {};
+      
+      const response = await axios.put(
+        `${api}/api/Account/updateDelete/${Id}`,
+        formData,
+        config
+      );
       // Tampilkan notifikasi sukses
       toast.success("Data berhasil dihapus");
       // Muat ulang data setelah penghapusan
       setSaveData(true);
     } catch (error) {
-      // Tangani kesalahan
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
+      toast.error('Error sending data:', error.response.data);
 
-        if (error.response.status === 401) {
-          // Unauthorized, handle accordingly (e.g., redirect to login page)
-          toast.error("Unauthorized request");
-        }
-      } else if (error.request) {
-        // The request was made but no response was received
-        toast.error("Request made but no response received:", error.request);
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        toast.error("Error during request setup:", error.message);
-      }
     }
     setOpenDlg(false);
   };
@@ -180,45 +168,105 @@ export default function Users() {
     setShowModal(false);
     // Reset nilai input ke nilai awal
     setFormData({
-      DataReferenceId: "",
-      RefereceName: "",
+      DisplayName: "",
+    UserName: "",
+    Password:"Pass1234",
+    Role: "",
+      IsActive: true,
     });
+    // Reset nilai editData untuk menandakan tidak ada data yang sedang diedit
     setEditData(null);
+    // Reset nilai editDataFromApi untuk menghapus data yang diambil dari API
+    setEditDataFromApi(null);
   };
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+  
+    if (name === "Role") {
+      setFormData({
+        ...formData,
+        [name]: value,
+      });
+    } else if (name === "IsActive") {
+      // Konversi nilai "true" atau "false" menjadi tipe boolean
+      const isActiveValue = value === "true";
+      setFormData({
+        ...formData,
+        [name]: isActiveValue,
+      });
+    } else {
+      // Check jika dalam mode edit, dan jika nama adalah UserName
+      if (editData && name === "UserName") {
+        // Jangan perbarui UserName dalam mode edit
+        setFormData({
+          ...formData,
+          // Gunakan UserName yang sudah ada dari editData
+          [name]: editData.UserName,
+        });
+      } else {
+        setFormData({
+          ...formData,
+          [name]: event.target.value,
+        });
+      }
+    }
+  };
+  
+  
+  
 
-  const handlerecordPerPage = (event) => {
-    event.preventDefault();
-    const page = event.target.value;
-    SetPageSize(page);
-  };
   const handleSubmit = async (e) => {
     e.preventDefault();
+   
     if (editData) {
       handleUpdate();
     } else {
       try {
-        const newFormData = {
-          ...formData,
-          ParameterChecks: dynamicInputsData,
-        };
-        setFormData(newFormData);
-        const response = await axios.post(
-          `${api}/api/ParamChecks`,
-          newFormData
-        );
-
+        const response = await axios.post(`${api}/api/Account/register`, formData, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
         toast.success("Data berhasil disimpan");
         setFormData({
-          DataReferenceId: "",
-          RefereceName: "",
+          DisplayName: "",
+    UserName: "",
+    Password:"Pass1234",
+    Role: "",
+          IsActive: true,
         });
         closeModal();
         setSaveData(true);
       } catch (error) {
-        toast.error(error.response.data);
+        if (error.response) {
+          // Tangani kesalahan dari respons server
+          if (error.response.data && error.response.data.errors) {
+            // Tangani kesalahan validasi
+            const validationErrors = error.response.data.errors;
+            const errorMessage = Object.values(validationErrors)
+              .map((errors) => errors.join(", "))
+              .join("; ");
+            setError(errorMessage);
+          } else {
+            // Tangani kesalahan lain dari respons server
+            setError(error.response.data.message);
+          }
+          // Menampilkan error dari respons server
+          toast.error("Error: " + error.response.data.message);
+        } else if (error.request) {
+          // Tangani kesalahan tanpa respons dari server
+          setError("Tidak ada respons dari server");
+          toast.error("Tidak ada respons dari server");
+        } else {
+          // Tangani kesalahan lainnya
+          setError("Terjadi kesalahan");
+          toast.error("Terjadi kesalahan");
+        }
       }
     }
   };
+  
 
   useEffect(() => {
     if (!error && !showModal) {
@@ -226,93 +274,46 @@ export default function Users() {
     }
   }, [showModal, error]);
 
-  const handlePageClick = async (data) => {
-    let currentPage = data.selected + 1;
-    SetCurrentPage(currentPage);
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      // Temukan input berikutnya dalam urutan tab
+      const nextInput = e.target.form.querySelector(
+        "input:not([disabled]):not([readonly])"
+      );
+
+      if (nextInput) {
+        // Pindahkan fokus ke input berikutnya
+        nextInput.focus();
+      }
+    }
   };
-
-  useEffect(() => {
-    fetchData("Change", currentPage, pageSize);
-  }, [pageSize, currentPage, saveData, showModal, openDlg]);
-
-  // const handleMoveUp = (index) => {
-  //   const updatedValIn = [...valIn];
-  //   const temp = updatedValIn[index];
-  //   updatedValIn[index] = updatedValIn[index - 1];
-  //   updatedValIn[index - 1] = temp;
-  //   setValIn(updatedValIn);
-  // };
-
-  // const handleMoveDown = (index) => {
-  //   const updatedValIn = [...valIn];
-  //   const temp = updatedValIn[index];
-  //   updatedValIn[index] = updatedValIn[index + 1];
-  //   updatedValIn[index + 1] = temp;
-  //   setValIn(updatedValIn);
-  // };
-  const handleMoveUp = (index) => {
-    if (index === 0) return; // Tidak dapat memindahkan elemen pertama ke atas
-
-    const updatedValIn = [...valIn];
-    // Tukar posisi elemen dengan elemen sebelumnya
-    [updatedValIn[index], updatedValIn[index - 1]] = [
-      updatedValIn[index - 1],
-      updatedValIn[index],
-    ];
-    // Perbarui nilai Order untuk elemen yang terpengaruh
-    updatedValIn[index].Order = index + 1;
-    updatedValIn[index - 1].Order = index;
-    setValIn(updatedValIn);
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      const inputs = e.target.form.elements;
+      const index = Array.prototype.indexOf.call(inputs, e.target);
+      if (inputs[index + 1]) {
+        inputs[index + 1].focus();
+      }
+      e.preventDefault();
+    }
   };
-
-  const handleMoveDown = (index) => {
-    if (index === valIn.length - 1) return; // Tidak dapat memindahkan elemen terakhir ke bawah
-
-    const updatedValIn = [...valIn];
-    // Tukar posisi elemen dengan elemen setelahnya
-    [updatedValIn[index], updatedValIn[index + 1]] = [
-      updatedValIn[index + 1],
-      updatedValIn[index],
-    ];
-    // Perbarui nilai Order untuk elemen yang terpengaruh
-    updatedValIn[index].Order = index + 1;
-    updatedValIn[index + 1].Order = index + 2;
-    setValIn(updatedValIn);
-  };
-
   const handleSearch = (event) => {
     event.preventDefault();
 
     fetchData("handleSearch");
   };
   useEffect(() => {
-    const fetchComboNames = async () => {
+    const fetchLineNames = async () => {
       try {
-        const response = await axios.get(`${api}/api/DataReference`);
-        const formattedData = response.data.Items.$values.map((item) => ({
-          value: item.Id,
-          label: item.RefereceName,
-        }));
-        setComboNames(formattedData);
+        const response = await axios.get(`${api}/api/DataLine`);
+        setLineNames(response.data.Items.$values);
       } catch (error) {
-        toast.error("Error fetching Station names:" + error);
+        toast.error("Error fetching line names:" + error);
       }
     };
 
-    fetchComboNames();
+    fetchLineNames();
   }, []);
-  const handleStationSelect = (selectedOption) => {
-    setSelectedReference(selectedOption);
-
-    if (selectedOption) {
-      setFormData({
-        ...formData,
-        DataReferenceId: selectedOption.value,
-        RefereceName: selectedOption.RefereceName,
-      });
-    }
-    // Lakukan apa pun yang perlu Anda lakukan dengan stasiun yang dipilih di sini
-  };
   const handleDropdownToggle = () => {
     setDropdownVisible(!dropdownVisible); // Toggle state ketika tombol dropdown diklik
   };
@@ -320,161 +321,34 @@ export default function Users() {
     setSelectedOption(option);
     setDropdownVisible(false); // Menutup dropdown setelah opsi dipilih
   };
-  const transformData = (data) => {
-    const transformedItems = data.Items.$values.reduce((result, item) => {
-      const { DataReferenceId, DataReference, ...parameterCheck } = item;
-      const existingItem = result.find((i) => i.Id === DataReferenceId);
+  useEffect(() => {
+    fetchData("Change");
+  }, [saveData, showModal, openDlg]);
 
-      if (existingItem) {
-        existingItem.ParameterChecks.push(parameterCheck);
-      } else {
-        result.push({
-          ...DataReference,
-          ParameterChecks: [parameterCheck],
-        });
-      }
-
-      return result;
-    }, []);
-
-    return {
-      Items: transformedItems,
-      TotalItems: transformedItems.length,
-      TotalPages: data.TotalPages,
-      CurrentPage: data.CurrentPage,
-      PageSize: data.PageSize,
-    };
-  };
-
-  const fetchData = async (dari = "sana", pageNumber = 1, pageSize = 10) => {
+  const fetchData = async (dari = "sana") => {
     try {
-      const response = await axios.get(
-        `${api}/api/ParamChecks?pageNumber=${pageNumber}&pageSize=${pageSize}&SearchQuery=${searchQuery}&Category=${selectedOption.value}`
-      );
+     
 
-      const transformedData = transformData(response.data);
-      setdataProduct(transformedData.Items);
-      setTotalItems(transformedData.TotalItems);
-      SetTotalPages(transformedData.TotalPages || 1);
-    } catch (error) {
-      toast.error(`Error fetching data:${dari} -  ${error.message}`, {});
-    }
-  };
-  function Row({ dataItem, index, handleEdit, confirmDelete }) {
-    const [open, setOpen] = React.useState(false);
-
-    return (
-      <>
-        <TableRow
-          sx={{
-            "& > *": {
-              borderBottom: "unset",
-            },
-            backgroundColor: index % 2 === 0 ? "white" : "lightgrey",
-          }}
-          style={{ height: "20px" }}
-        >
-          <TableCell className="w-1">
-            <IconButton
-              aria-label="expand row"
-              size="small"
-              onClick={() => setOpen(!open)}
-              sx={{ p: 1 }}
-            >
-              {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-            </IconButton>
-          </TableCell>
-          <TableCell component="th" scope="row">
-            {dataItem.RefereceName}
-          </TableCell>
-          <TableCell align="right">
-            <IconButton
-              aria-label="edit"
-              sx={{ color: "blue" }}
-              onClick={(event) => handleEdit(dataItem, event)} // Passing dataItem to handleEdit
-            >
-              <EditIcon />
-            </IconButton>
-            <IconButton
-              aria-label="delete"
-              sx={{ color: "red" }}
-              onClick={() => confirmDelete(dataItem.Id, dataItem.RefereceName)}
-            >
-              <DeleteIcon />
-            </IconButton>
-          </TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
-            <Collapse in={open} timeout="auto" unmountOnExit>
-              <Box sx={{ margin: 1 }}>
-                <Typography variant="h6" gutterBottom component="div">
-                  Parameter Checks
-                </Typography>
-                <Table size="small" aria-label="parameter-checks">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Description</TableCell>
-                      <TableCell>Order</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {dataItem.ParameterChecks.map((check) => (
-                      <TableRow key={check.Id}>
-                        <TableCell>{check.Description}</TableCell>
-                        <TableCell>{check.Order}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Box>
-            </Collapse>
-          </TableCell>
-        </TableRow>
-      </>
-    );
-  }
-
-  const [valIn, setValIn] = useState([]);
-  const handleAddIn = () => {
-    const abc = [...valIn, []];
-    setValIn(abc);
-  };
-
-  const handleChangeIn = (onChangeValue, i) => {
-    const updatedValIn = [...valIn];
-    if (i < updatedValIn.length) {
-      updatedValIn[i] = {
-        Description: onChangeValue.target.value,
-        Order: i + 1,
-      };
-    } else {
-      updatedValIn.push({
-        Description: onChangeValue.target.value,
-        Order: updatedValIn.length + 1,
+      const response = await axios.get(`${api}/api/Account/allUsers`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // Menggunakan token dari localStorage
+        },
       });
+      setdataProduct(response.data.$values);
+    } catch (error) {
+      // toast.error(`Error fetching data dari :${dari} ${error.message}`);
+      toast.error(`Error fetching data: ${dari} - ${error.message}`);
     }
-    setValIn(updatedValIn);
   };
-
-  const handleDeleteIn = (i) => {
-    const deletVal = [...valIn];
-    deletVal.splice(i, 1);
-    setValIn(deletVal);
-  };
-
-  const dynamicInputsData = valIn.map((value, index) => ({
-    ...value, // Menyalin properti dari objek value
-    Order: index + 1, // Menambahkan nomor urutan
-  }));
   return (
-    <div className="z-0 sm:w-full lg:w-3/4">
-      <div className="fixed top-0 mb-2 z-30 mt-11 sm:mt-24 md:mt-11 lg:mt-11 xl:mt-11">
+    <div className="z-0 ">
+      <div className="fixed top-0 right-4 mb-4 mr-2 mt-11 z-30">
         <button
           onClick={openModal}
-          className="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+          className=" bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
         >
-          ADD Parameter
+          ADD User
         </button>
       </div>
 
@@ -490,7 +364,7 @@ export default function Users() {
             type="search"
             id="search-dropdown"
             className=" block w-full p-2.5 text-sm text-gray-900 bg-gray-50 rounded-l-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:border-blue-500"
-            placeholder="Search Reference Station Id, Station Name ..."
+            placeholder="Search Display Name,User Name ..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -574,219 +448,158 @@ export default function Users() {
         <section className="container mx-auto p-2 font-mono hidden sm:table w-full">
           <div className="w-full mb-2 overflow-hidden rounded-lg shadow-lg">
             <div className="w-full overflow-x-auto">
-              <TableContainer component={Paper}>
-                <Table aria-label="collapsible table">
-                  <TableHead className="bg-green-600 text-white">
-                    <TableRow>
-                      <TableCell />
-                      <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                        Reference Name
-                      </TableCell>{" "}
-                      {/* Gaya teks diubah menjadi putih dan tebal */}
-                      <TableCell
-                        align="right"
-                        sx={{ color: "white", fontWeight: "bold" }}
+              <table className="w-full">
+                <thead>
+                  <tr className="text-md font-semibold tracking-wide text-left text-white bg-green-600 uppercase border-b border-gray-600">
+                    <th className="px-4 ">Display Name</th>
+                    <th className="px-4 ">User Name</th>
+                    <th className="px-4">Role</th>
+                    <th className="px-4">Active</th>
+                    <th className="px-4 w-[200px] text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white">
+                  {dataProduct.map((data, index) => (
+                    <tr className="text-gray-700" key={index}>
+                      <td
+                        data-name="PSN"
+                        className="px-2 text-ms font-semibold border"
                       >
-                        Actions
-                      </TableCell>{" "}
-                      {/* Gaya teks diubah menjadi putih dan tebal */}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {dataProduct.map((item, index) => (
-                      <Row
-                        key={item.Id}
-                        dataItem={item}
-                        index={index}
-                        handleEdit={handleEdit}
-                        confirmDelete={confirmDelete}
-                      />
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                        {data.DisplayName ? data.DisplayName : "-"}
+                      </td>
+                      <td
+                        data-name="PSN"
+                        className="px-2 text-ms font-semibold border"
+                      >
+                        {data.UserName ? data.UserName : "-"}
+                      </td>
+                      <td
+                        data-name="Reference"
+                        className="px-2  text-xs border"
+                      >
+                        {data.Role ? data.Role : "Not Set"}
+                      </td>
+                      <td
+  data-name="Reference"
+  className="px-2 text-xs border"
+>
+{data.IsActive !== null ? (data.IsActive === true ? "Active" : "Non Active") : "Active"}
+
+
+</td>
+                      <td className="px-2 flex justify-center items-center">
+                        <button
+                          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 mr-2"
+                          onClick={() => handleEdit(data)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-red-300"
+                          onClick={() => confirmDelete(data.Id, data.UserName)}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
 
         <section className="container mx-auto p-2 font-mono sm:hidden">
           <div className="w-full mb-2 overflow-hidden rounded-lg shadow-lg">
-            <div className="w-full overflow-x-auto ">
-              {dataProduct.map((data, index) => (
-                <div
-                  key={index}
-                  className={`mb-4 p-4 shadow-lg rounded-lg sm:flex sm:flex-wrap sm:justify-normal ${
-                    index % 2 === 0 ? "bg-green-200" : "bg-white"
-                  } border-5`}
-                >
-                  <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
-                    <strong>Reference </strong>
-                    <span>
-                      {" "}
-                      : {data.RefereceName ? data.RefereceName : "-"}
-                    </span>
-                  </div>
-                  <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
-                    <strong>Station Id </strong>
-                    <span>
-                      {" "}
-                      :{" "}
-                      {data.ParameterChecks.Description
-                        ? data.ParameterChecks.Description
-                        : "-"}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
-                    <span>
-                      {" "}
-                      <button
-                        className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
-                        onClick={() => handleEdit(data)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-red-300"
-                        onClick={() => confirmDelete(data.Id, data.StationID)}
-                      >
-                        Delete
-                      </button>
-                    </span>
-                  </div>
-
-                  {/* Tempat untuk tombol aksi jika diperlukan */}
-                </div>
-              ))}
-            </div>
+            <div className="w-full overflow-x-auto "></div>
           </div>
         </section>
       </div>
-      <div className=" mt-1 w-full">
-        <div className="flex flex-col md:flex-row justify-start md:justify-between">
-          <div className="w-full mt-2">
-            <div className="sm:flex-none sm:object-center ">
-              <select
-                name="item"
-                className="  w-16   text-base   bg-white text-gray-800 border border-green-700 rounded items-center   align-middle  justify-start"
-                onChange={(e) => handlerecordPerPage(e)}
-              >
-                <option>10</option>
-                <option>20</option>
-                <option>30</option>
-                <option>50</option>
-                <option>100</option>
-                <option>{totalItems}</option>
-              </select>
-              <div>From {totalItems} Record</div>
-            </div>
-          </div>
-          <div className="flex align-middle  md:justify-end ">
-            <ReactPaginate
-              previousLabel={"previous"}
-              nextLabel={"next"}
-              breakLabel={"..."}
-              pageCount={totalPages}
-              marginPagesDisplayed={2}
-              pageRangeDisplayed={3}
-              onPageChange={handlePageClick}
-              containerClassName={"flex justify-center mt-4"}
-              pageClassName={"mx-1"}
-              pageLinkClassName={
-                "px-3 py-2 bg-white text-green-500 border border-green-500 rounded-md"
-              }
-              previousClassName={"mr-1"}
-              previousLinkClassName={
-                "px-3 py-2 bg-white text-green-500 border border-green-500 rounded-md"
-              }
-              nextClassName={"ml-1"}
-              nextLinkClassName={
-                "px-3 py-2 bg-white text-green-500 border border-green-500 rounded-md"
-              }
-              breakClassName={"mx-1"}
-              breakLinkClassName={
-                "px-3 py-2 bg-white text-green-500 border border-green-500 rounded-md"
-              }
-              activeClassName={"font-bold  text-white"}
-            />
-          </div>
-        </div>
-      </div>
+
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75 ">
-          <div className="bg-white p-8 rounded-lg shadow-md w-1/3">
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75">
+          <div className="bg-white p-8 rounded-lg shadow-md w-96">
             <h2 className="text-lg font-bold mb-4">
-              {editData ? "Edit Parameter" : "Add Parameter"}
+              {editData ? "Edit User" : "Add User"}
             </h2>
             {error && <p className="text-red-500">{error}</p>}
-            <form id="parameterForm" onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit}>
               <label
                 htmlFor="input1"
                 className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
               >
-                Reference Name
+                Display Name
               </label>
-              <Select
-                className="mb-3"
-                options={comboNames}
-                value={selectedReference}
-                onChange={handleStationSelect}
+              <input
+                type="text"
+                name="DisplayName"
+                value={formData.DisplayName}
+                onChange={handleChange}
+                onKeyDown={handleKeyDown} // Mendeteksi tombol Enter
+                placeholder="Display Name"
+                className="mb-2 p-2 border rounded"
+                style={{ width: "100%" }} // Menetapkan lebar 100%
+                tabIndex={0}
               />
-              {selectedReference && (
-                <div className="mb-7">
-                  {valIn.map((data, i) => (
-                    <div className="mb-4 flex items-center" key={i}>
-                      <input
-                        value={data.Description}
-                        onChange={(e) => handleChangeIn(e, i)}
-                        className="border rounded py-2 px-3 mr-2 w-3/4"
-                      />
-                      <div className="flex flex-col">
-                        <button
-                          type="button"
-                          onClick={() => handleMoveUp(i)}
-                          disabled={i === 0} // Nonaktifkan tombol Up jika dynamic input pertama
-                          className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2 ${
-                            i === 0 ? "opacity-50 cursor-not-allowed" : ""
-                          }w-auto`}
-                        >
-                          <MdKeyboardArrowUp />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleMoveDown(i)}
-                          disabled={i === valIn.length - 1} // Nonaktifkan tombol Down jika dynamic input terakhir
-                          className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2 ${
-                            i === valIn.length - 1
-                              ? "opacity-50 cursor-not-allowed"
-                              : ""
-                          } w-auto`}
-                        >
-                          <MdKeyboardArrowDown />
-                        </button>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteIn(i)}
-                        className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded ml-2"
-                      >
-                        <DeleteIcon />
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    type="button" // Tambahkan atribut type="button" di sini
-                    onClick={() => handleAddIn()}
-                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4"
-                  >
-                    Next Parameter
-                  </button>
-                </div>
-              )}
+              <label
+                htmlFor="input1"
+                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              >
+                User Name
+              </label>
+              <input
+                type="text"
+                name="UserName"
+                value={formData.UserName}
+                onChange={handleChange}
+                onKeyDown={handleKeyDown} // Mendeteksi tombol Enter
+                placeholder="User Name"
+                className="mb-2 p-2 border rounded"
+                style={{ width: "100%" }} // Menetapkan lebar 100%
+                tabIndex={0}
+              />
+              <label
+                htmlFor="input1"
+                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              >
+                Role
+              </label>
+              <select
+                id="Role"
+                name="Role"
+                value={formData.Role}
+                onChange={handleChange}
+                className="mb-2 p-2 border rounded"
+                tabIndex={1}
+              >
+                <option value="">Select Role</option>
+                <option value="Admin">Admin</option>
+                <option value="Staf">Staf</option>
+                <option value="LI">LI</option>
+                <option value="Teknisi">Teknisi</option>
+                <option value="Operator">Operator</option>
+              </select>
+              <label
+                htmlFor="input1"
+                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              >
+                Status
+              </label>
+              <select
+                id="IsActive"
+                name="IsActive"
+                value={formData.IsActive}
+                onChange={handleChange}
+                className="mb-2 p-2 border rounded"
+                tabIndex={1}
+              >
+               <option value="true">Active</option>
+                <option value="false">Non Active</option>
+              </select>
+
               <div className="flex justify-between">
                 <button
                   type="submit"
-                  // onClick={handleSubmit}
                   className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
                 >
                   {editData ? "Update" : "Save"}
@@ -803,7 +616,6 @@ export default function Users() {
           </div>
         </div>
       )}
-
       <Modal open={openDlg} onClose={() => setOpenDlg(false)}>
         <div className="text-center w-56">
           <FaRegTrashAlt size={56} className="mx-auto text-red-500" />

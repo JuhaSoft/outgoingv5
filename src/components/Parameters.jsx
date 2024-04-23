@@ -235,21 +235,7 @@ export default function Parameters() {
     fetchData("Change", currentPage, pageSize);
   }, [pageSize, currentPage, saveData, showModal, openDlg]);
 
-  // const handleMoveUp = (index) => {
-  //   const updatedValIn = [...valIn];
-  //   const temp = updatedValIn[index];
-  //   updatedValIn[index] = updatedValIn[index - 1];
-  //   updatedValIn[index - 1] = temp;
-  //   setValIn(updatedValIn);
-  // };
 
-  // const handleMoveDown = (index) => {
-  //   const updatedValIn = [...valIn];
-  //   const temp = updatedValIn[index];
-  //   updatedValIn[index] = updatedValIn[index + 1];
-  //   updatedValIn[index + 1] = temp;
-  //   setValIn(updatedValIn);
-  // };
   const handleMoveUp = (index) => {
     if (index === 0) return; // Tidak dapat memindahkan elemen pertama ke atas
 

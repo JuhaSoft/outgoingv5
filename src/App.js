@@ -17,31 +17,33 @@ import LastStations from './components/LastStations'
 import LoginForm from './components/Users/LoginForm'
 import LoadingPage from './components/Shared/LoadingPage'
 import Users from './components/Users/Users'
+import EditProfileForm from './components/Users/EditProfileForm'
 // import CollapsibleTable from './components/CollapsibleTable'
 
 const App = () => {
   
   return (
     <Router>
-      <Routes>
-        <Route path='/' element={<Layout />}>
-          <Route index element={<Dashboard />} />
-          <Route path='products' element={<Products />} />
-          <Route path='orders' element={<Orders />} />
-          <Route path='Lines' element={<Lines />} />
-          <Route path='References' element={<References />} />
-          <Route path='Parameters' element={<Parameters />} />
-          <Route path='LastStations' element={<LastStations />} />
-          <Route path='LoadingPage' element={<LoadingPage />} />
-          <Route path='Users' element={<Users />} />
-          {/* <Route path='CollapsibleTables' element={<CollapsibleTable/>} /> */}
-          
-        </Route>
-        <Route path='login' element={<div>This login page</div>} />
-        <Route path="*" element={<PageNotFound />} />
-        <Route path="LoginUser" element={<LoginForm />} />
-      </Routes>
-    </Router>
+    <Routes>
+      <Route path='/' element={<Layout />}>
+        <Route index element={<Dashboard />} />
+        <Route path='products' element={<Products />} />
+        <Route path='orders' element={<Orders />} />
+        <Route path='Lines' element={<Lines />} />
+        <Route path='References' element={<References />} />
+        <Route path='Parameters' element={<Parameters />} />
+        <Route path='LastStations' element={<LastStations />} />
+        <Route path='LoadingPage' element={<LoadingPage />} />
+        <Route path='Users' element={<Users />} />
+        <Route path='Users/EditProfileForm' element={<EditProfileForm />} />
+        {/* <Route path='CollapsibleTables' element={<CollapsibleTable/>} /> */}
+        
+      </Route>
+      <Route path='login' element={<div>This login page</div>} />
+      <Route path="*" element={<PageNotFound />} />
+      <Route path="LoginUser" element={<LoginForm />} />
+    </Routes>
+  </Router>
     // <main className="w-full bg-slate-200 h-screen flex justify-between items-start">
     //   <Sidebar />
     //   <Main />

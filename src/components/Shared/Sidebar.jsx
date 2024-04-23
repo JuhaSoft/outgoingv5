@@ -114,9 +114,9 @@ export default function Sidebar() {
               hasSubMenu: true,
               submenu: [
                 {
-                  key: 'profile',
+                  key: 'profiles',
                   label: 'Profile',
-                  path: '/LoadingPage',
+                  path: 'Users/EditProfileForm',
                   icon: <HiOutlineCog />
                 },
                 {
