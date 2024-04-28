@@ -1,16 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import Select from "react-select";
 // import globalConfig from '../../config'
 import axios from "axios";
 import ReactPaginate from "react-paginate";
 import { format } from "date-fns";
-import OrdersInfo from "./OrdersInfo";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Modal from "../Shared/Modal";
+import { FaRegTrashAlt } from "react-icons/fa";
+import { User } from "react-feather";
 export default function Orders() {
-  const appConfig = window.globalConfig || { siteName: process.env.REACT_APP_SITENAME} 
-  const api =appConfig.APIHOST
+  const appConfig = window.globalConfig || {
+    siteName: process.env.REACT_APP_SITENAME,
+  };
+  const api = appConfig.APIHOST;
+  const [openDlg, setOpenDlg] = useState(false);
   const [error, setError] = useState("");
+  const [idDelete, setidDelete] = useState("");
+  const [StationIDDelete, setStationIDDelete] = useState("");
   const [saveData, setSaveData] = useState(Boolean);
   const [dataProduct, setdataProduct] = useState([]);
   const [tbldata, settbldata] = useState("");
@@ -20,12 +27,21 @@ export default function Orders() {
   const [currentPage, SetCurrentPage] = useState(1);
   const [pageSize, SetPageSize] = useState(10);
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [comboNames, setComboNames] = useState([]);
+  const [selectedData, setSelectedData] = useState(
+    JSON.parse(localStorage.getItem("selectedOrder"))
+  );
+  const [selectedOptionCombo, setSelectedOptionCombo] = useState(null);
+  const [selectedStation, setSelectedStation] = useState(null);
+  let token = localStorage.getItem("token");
+  let UserId = localStorage.getItem("UserId");
+  const [isWoRunning, setIsWoRunning] = useState(
+    localStorage.getItem("woStartRun") === "true"
+  );
   const [selectedOption, setSelectedOption] = useState({
     text: "All Categories",
     value: "All",
   }); // State untuk menyimpan opsi yang dipilih
-  let token = localStorage.getItem("token");
-  let userId = localStorage.getItem("UserId");
 
   const dropdownOptions = [
     { text: "All Categories", value: "All" },
@@ -38,80 +54,76 @@ export default function Orders() {
     { text: "Date", value: "WoCreate" },
   ];
 
+  const [editDataFromApi, setEditDataFromApi] = useState(null);
+  const handleRunStop = () => {
+    if (isWoRunning) {
+      // Jika sedang berjalan, set local storage menjadi false dan hentikan
+      localStorage.setItem("woStartRun", "false");
+      setIsWoRunning(false);
+    } else {
+      // Jika tidak berjalan, set local storage menjadi true dan jalankan
+      localStorage.setItem("woStartRun", "true");
+      setIsWoRunning(true);
+    }
+  };
   const [searchQuery, setSearchQuery] = useState("");
+  const [editData, setEditData] = useState(null);
 
   const [formData, setFormData] = useState({
     WoNumber: "",
     SONumber: "",
     WoReferenceID: "",
     WoQTY: "",
+    PassQTY: "0",
+    FailQTY: "0",
     WoStatus: "Open",
     // WoCreate: moment(new Date()).format('YYYY-MM-DD HH:mm:ss'),
-    UserIdCreate: userId,
+    UserIdCreate: UserId,
     WOisDeleted: false,
   });
 
   const openModal = () => {
+    setError("");
     setShowModal(true);
   };
 
-  const closeModal = () => {
-    setShowModal(false);
-    // Reset nilai input ke nilai awal
-    setFormData({
-      WoNumber: "",
-      SONumber: "",
-      WoReferenceID: "",
-      WoQTY: "",
-      WoStatus: "Open",
-      UserIdCreate: userId,
-      WOisDeleted: false,
-    });
-  };
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-  const handlerecordPerPage = (event) => {
-    event.preventDefault();
-    const page = event.target.value;
-    SetPageSize(page);
-  };
-  const handleSubmit = async (e) => {
-    e.preventDefault();
- 
+  const handleEdit = async (data) => {
+    setError("");
+    setEditData(data);
+    setShowModal(true);
     try {
-      const response = await axios.post(`${api}/api/WO`, formData, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await axios.get(`${api}/api/Wo/${data.Id}`);
+      setFormData({
+        ...response.data,
+        WoReferenceID: response.data.WoReferenceID,
       });
-      
+      setSelectedStation({
+        value: response.data.WoReferenceID,
+        label: response.data.WoReferenceID,
+      });
+    } catch (error) {
+      toast.error(error.response.data);
+    }
+  };
+  const handleUpdate = async () => {
+    try {
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      };
+      const response = await axios.put(
+        `${api}/api/Wo/${editData.Id}`,
+        formData,
+        config
+      );
 
       // Menampilkan notifikasi sukses
-      toast.success("Data berhasil disimpan");
-      setFormData({
-        WoNumber: "",
-        SONumber: "",
-        WoReferenceID: "",
-        WoQTY: "",
-        WoStatus: "Open",
-        // WoCreate: moment(new Date()).format('YYYY-MM-DD HH:mm:ss'),
-        UserIdCreate: "35940325-2c3f-4319-8279-6a29dc1ef508",
-        WOisDeleted: false,
-      });
+      toast.success("Data berhasil diperbarui");
       // Tutup modal
-      if (saveData) {
-        setSaveData(false);
-      } else {
-        setSaveData(true);
-      }
-
       closeModal();
+      // Membuat permintaan kembali untuk memperbarui data di tabel
+      setSaveData(true);
     } catch (error) {
       if (error.response) {
         // Tangani kesalahan dari respons server
@@ -126,21 +138,122 @@ export default function Orders() {
           // Tangani kesalahan lain dari respons server
           setError(error.response.data.message);
         }
-        toast.error("Terjadi kesalahan");
+        toast.error("Terjadi kesalahan: " + error.response.data);
       } else if (error.request) {
         // Tangani kesalahan tanpa respons dari server
         setError("Tidak ada respons dari server");
         toast.error("Tidak ada respons dari server");
       } else {
         // Tangani kesalahan lainnya
-        setError("Terjadi kesalahan");
         toast.error("Terjadi kesalahan");
+      }
+    }
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    // Reset nilai input ke nilai awal
+    setFormData({
+      WoNumber: "",
+      SONumber: "",
+      WoReferenceID: "",
+      WoQTY: "",
+      PassQTY: "0",
+      FailQTY: "0",
+      WoStatus: "Open",
+      // WoCreate: moment(new Date()).format('YYYY-MM-DD HH:mm:ss'),
+      UserIdCreate: UserId,
+      WOisDeleted: false,
+    });
+    // Reset nilai editData untuk menandakan tidak ada data yang sedang diedit
+    setEditData(null);
+    // Reset nilai editDataFromApi untuk menghapus data yang diambil dari API
+    setEditDataFromApi(null);
+  };
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    const regex = /^[0-9]*$/;
+    if (name === "PassQTY" || name === "FailQTY" || name == "WoQTY") {
+      if (!regex.test(value)) {
+        // Jika tidak cocok dengan regex, tidak perbarui state
+        return;
+      }
+    }
+
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+  };
+  const handlerecordPerPage = (event) => {
+    event.preventDefault();
+    const page = event.target.value;
+    SetPageSize(page);
+  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (editData) {
+      handleUpdate();
+    } else {
+      try {
+        const response = await axios.post(`${api}/api/WO`, formData, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        // Menampilkan notifikasi sukses
+        toast.success("Data berhasil disimpan");
+        setFormData({
+          WoNumber: "",
+          SONumber: "",
+          WoReferenceID: "",
+          WoQTY: "",
+          PassQTY: "0",
+          FailQTY: "0",
+          WoStatus: "Open",
+          UserIdCreate: UserId,
+          WOisDeleted: false,
+        });
+        // Tutup modal
+        if (saveData) {
+          setSaveData(false);
+        } else {
+          setSaveData(true);
+        }
+
+        closeModal();
+      } catch (error) {
+        if (error.response) {
+          // Tangani kesalahan dari respons server
+          if (error.response.data && error.response.data.errors) {
+            // Tangani kesalahan validasi
+            const validationErrors = error.response.data.errors;
+            const errorMessage = Object.values(validationErrors)
+              .map((errors) => errors.join(", "))
+              .join("; ");
+            setError(errorMessage);
+          } else {
+            // Tangani kesalahan lain dari respons server
+            setError(error.response.data.message);
+          }
+          toast.error("Terjadi kesalahan");
+        } else if (error.request) {
+          // Tangani kesalahan tanpa respons dari server
+          setError("Tidak ada respons dari server");
+          toast.error("Tidak ada respons dari server");
+        } else {
+          // Tangani kesalahan lainnya
+          setError("Terjadi kesalahan");
+          toast.error("Terjadi kesalahan");
+        }
       }
     }
   };
   useEffect(() => {
     if (!error && !showModal) {
-      // Reset error state jika tidak ada kesalahan dan modal ditutup
       setError("");
     }
   }, [showModal, error]);
@@ -148,24 +261,18 @@ export default function Orders() {
   const handlePageClick = async (data) => {
     let currentPage = data.selected + 1;
     SetCurrentPage(currentPage);
-    // fetchData("Handle Page ", currentPage, pageSize);
-    
   };
-  // useEffect(() => {
-  //   fetchData("Loading Awal");
-  // }, []);
+
   useEffect(() => {
-   fetchData("Change",currentPage,pageSize);
-  }, [pageSize, currentPage, saveData]);
+    fetchData("Change", currentPage, pageSize);
+  }, [pageSize, currentPage, saveData, showModal, openDlg]);
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
-      // Temukan input berikutnya dalam urutan tab
       const nextInput = e.target.form.querySelector(
         "input:not([disabled]):not([readonly])"
       );
 
       if (nextInput) {
-        // Pindahkan fokus ke input berikutnya
         nextInput.focus();
       }
     }
@@ -181,15 +288,46 @@ export default function Orders() {
     }
   };
   const handleSearch = (event) => {
-    // console.log("test");
     event.preventDefault();
 
-    fetchData("handleSearch"); // Panggil fungsi fetchData dengan parameter default
-    // Untuk mengomentari kode, gunakan shortcut berikut:
-    // - Di Windows/Linux: Ctrl + /
-    // - Di MacOS: Cmd + /
+    fetchData("handleSearch");
   };
+  useEffect(() => {
+    const fetchComboNames = async () => {
+      try {
+        const response = await axios.get(`${api}/api/DataReference`);
+        // Format data dari API sesuai dengan kebutuhan react-select
+        const formattedData = response.data.Items.$values.map((item) => ({
+          value: item.RefereceName,
+          label: item.RefereceName,
+        }));
+        setComboNames(formattedData);
+        // Mengisi formData.WoReferenceID dengan data pertama dari formattedData
+        if (formattedData.length > 0) {
+          setFormData((prevData) => ({
+            ...prevData,
+            WoReferenceID: formattedData[0].value,
+          }));
+        }
+      } catch (error) {
+        toast.error("Error fetching Station names:", error);
+      }
+    };
 
+    fetchComboNames();
+  }, []);
+  const handleStationSelect = (selectedOption) => {
+    setSelectedStation(selectedOption);
+
+    if (selectedOption) {
+      setFormData({
+        ...formData,
+        WoReferenceID: selectedOption.label,
+      });
+    }
+
+    // Lakukan apa pun yang perlu Anda lakukan dengan stasiun yang dipilih di sini
+  };
   const handleDropdownToggle = () => {
     setDropdownVisible(!dropdownVisible); // Toggle state ketika tombol dropdown diklik
   };
@@ -200,7 +338,7 @@ export default function Orders() {
   const fetchData = async (dari = "sana", pageNumber = 1, pageSize = 10) => {
     try {
       const response = await axios.get(
-        `${api}/api/WO?pageNumber=${pageNumber}&pageSize=${pageSize}&SearchQuery=${searchQuery}&Category=${selectedOption.value}`
+        `${api}/api/Wo?pageNumber=${pageNumber}&pageSize=${pageSize}&SearchQuery=${searchQuery}&Category=${selectedOption.value}`
       );
       setdataProduct(response.data.Items.$values);
       setTotalItems(response.data.TotalItems);
@@ -214,17 +352,110 @@ export default function Orders() {
       toast.error(`Error fetching data:${dari} -  ${error.message}`, {});
     }
   };
+  const renderSelectButton = (data) => {
+    if (data.WoStatus === "Open" ) {
+      return (
+        <button
+          className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-red-300"
+          onClick={() => handleSelect(data)}
+        >
+          Select
+        </button>
+      );
+    }
+    return null; // Tombol tidak ditampilkan jika WoStatus bukan "Open"
+  };
+  const handleSelect = (data) => {
+    // Simpan data yang dipilih ke state
 
+    setSelectedData(data);
+    localStorage.setItem("selectedOrder", JSON.stringify(data));
+    // Simpan data yang dipilih ke local storage
+    localStorage.setItem("WoIDRun", data.WoNumber);
+    localStorage.setItem("SORun", data.SONumber);
+    localStorage.setItem("ReferceRun", data.WoReferenceID);
+    localStorage.setItem("WoQtyRun", data.WoQTY);
+    // localStorage.setItem('WoStartRun', data.WoQTY)\
+    GetDetailRef(data.WoReferenceID);
+  };
+
+  const DeleteWorun = () => {
+    localStorage.removeItem("WoIDRun");
+    localStorage.removeItem("SORun");
+    localStorage.removeItem("ReferceRun");
+    localStorage.removeItem("ReferceRun");
+    localStorage.removeItem("WoQtyRun");
+  };
+
+  const GetDetailRef = async (referencid) => {
+    try {
+      const response = await axios.get(
+        `${api}/api/datareference/byname/${referencid}`
+      );
+      localStorage.setItem("DetailRef", JSON.stringify(response.data));
+      setError(null);
+    } catch (error) {
+      // Tangani kesalahan jika permintaan gagal
+      setError(error.response.data.message || "Something went wrong");
+    }
+  };
+  const InputField = ({ label, value }) => {
+    return (
+      <div className="mx-2 mb-2">
+        <label className="block text-sm font-medium text-gray-700 ">
+          {label}
+        </label>
+        <input
+          type="text"
+          className="m-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+          value={value || ""}
+          readOnly
+        />
+      </div>
+    );
+  };
   return (
     <div className="z-0 ">
-      
-      {/* <button
-        type="button"
-        className="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800 absolute -top-3 left-3"
-        onClick={openModal}
+      {selectedData && (
+        <div className="mb-4">
+          <div className="w-full m-2 overflow-hidden rounded-lg shadow-lg bg-gray-100 ">
+            <h2 className="font-bold text-lg mx-2 ">Selected Data:</h2>
+            <div className="grid grid-cols-5 gap-4 mb-4">
+              <InputField label="WO Number" value={selectedData.WoNumber} />
+              <InputField label="SO Number" value={selectedData.SONumber} />
+              <InputField
+                label="Reference"
+                value={selectedData.WoReferenceID}
+              />
+              <InputField label="WO QTY" value={selectedData.WoQTY} />
+              <div>
+                <button
+                  className={`mt-2 py-2 px-4 rounded font-semibold ${
+                    isWoRunning ? "bg-red-500" : "bg-green-500"
+                  } text-white w-auto `}
+                  onClick={handleRunStop}
+                >
+                  {isWoRunning ? "Stop" : "Run"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div
+        className={`fixed top-0 right-4 mb-4 mr-2 ${
+          selectedData ? "mt-40" : "mt-11"
+        } z-30`}
       >
-        ADD WO
-      </button> */}
+        <button
+          onClick={openModal}
+          className=" bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+        >
+          ADD Order
+        </button>
+      </div>
+
       <form
         className="max-w-lg mx-auto md:flex md:items-center md:flex-row-reverse items-center "
         onSubmit={handleSearch}
@@ -238,7 +469,6 @@ export default function Orders() {
             id="search-dropdown"
             className=" block w-full p-2.5 text-sm text-gray-900 bg-gray-50 rounded-l-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:border-blue-500"
             placeholder="Search Work Order, Sales Order, Reference ..."
-            
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -319,14 +549,6 @@ export default function Orders() {
       </form>
 
       <div className="overflow-x-auto   shadow-md sm:rounded-lg mt-6">
-        <div className="fixed top-0 right-4 mb-4 mr-2 mt-11 z-30">
-        <button
-          onClick={openModal}
-          className=" bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
-        >
-          ADD Order
-        </button>
-      </div>
         <section className="container mx-auto p-2 font-mono hidden sm:table w-full">
           <div className="w-full mb-2 overflow-hidden rounded-lg shadow-lg">
             <div className="w-full overflow-x-auto">
@@ -337,9 +559,11 @@ export default function Orders() {
                     <th className="px-4">SO Number</th>
                     <th className="px-4 ">Reference</th>
                     <th className="px-4 ">WO QTY</th>
+                    <th className="px-4 ">Pass</th>
+                    <th className="px-4 ">Fail</th>
                     <th className="px-4 ">WO STATUS</th>
                     <th className="px-4 ">Date</th>
-                    <th className="px-4 ">Action</th>
+                    <th className="px-4 w-[200px] text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white">
@@ -366,6 +590,18 @@ export default function Orders() {
                       >
                         {data.WoQTY ? data.WoQTY : "-"}
                       </td>
+                      <td
+                        data-name="LastStation"
+                        className="px-2  text-xs border"
+                      >
+                        {data.PassQTY ? data.PassQTY : "-"}
+                      </td>
+                      <td
+                        data-name="LastStation"
+                        className="px-2  text-xs border"
+                      >
+                        {data.FailQTY ? data.FailQTY : "-"}
+                      </td>
                       <td data-name="Wostatus" className="px-2  text-xs border">
                         {data.WoStatus ? data.WoStatus : "-"}
                       </td>
@@ -382,12 +618,24 @@ export default function Orders() {
                         data-name="Date"
                         className="px-2 py-1 text-xs border text-center"
                       >
-                        {/* <button
-                          type="button"
-                          className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
-                        >
-                          Detail
-                        </button> */}
+                        <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
+                          <span>
+                            <button
+                              className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 mr-2"
+                              onClick={() => handleEdit(data)}
+                            >
+                              Edit
+                            </button>
+                            {/* <button
+                              className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-red-300"
+                              // onClick={() => confirmDelete(data.Id, data.StationID)}
+                            >
+                              Select
+                            </button> */}
+                        
+                        {localStorage.getItem('woStartRun') !== 'true' && renderSelectButton(data)}
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -396,6 +644,7 @@ export default function Orders() {
             </div>
           </div>
         </section>
+
         <section className="container mx-auto p-2 font-mono sm:hidden">
           <div className="w-full mb-2 overflow-hidden rounded-lg shadow-lg">
             <div className="w-full overflow-x-auto ">
@@ -426,6 +675,14 @@ export default function Orders() {
                     <span> : {data.WoQTY ? data.WoQTY : "-"}</span>
                   </div>
                   <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
+                    <strong>Pass </strong>
+                    <span> : {data.PassQTY ? data.PassQTY : "-"}</span>
+                  </div>
+                  <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
+                    <strong>Fail </strong>
+                    <span> : {data.FailQTY ? data.FailQTY : "-"}</span>
+                  </div>
+                  <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
                     <strong>WO STATUS </strong>
                     <span> : {data.WoStatus ? data.WoStatus : "-"}</span>
                   </div>
@@ -439,7 +696,18 @@ export default function Orders() {
                         : "Not Valid"}
                     </span>
                   </div>
-                  {/* Tempat untuk tombol aksi jika diperlukan */}
+                  <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
+                    <span>
+                      {" "}
+                      <button
+                        className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        // onClick={() => handleEdit(data)}
+                      >
+                        Edit
+                      </button>
+                      {localStorage.getItem('woStartRun') !== 'true' && renderSelectButton(data)}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -498,8 +766,10 @@ export default function Orders() {
       </div>
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75">
-          <div className="bg-white p-8 rounded-lg shadow-md w-96">
-            <h2 className="text-lg font-bold mb-4">ADD Work Order</h2>
+          <div className="bg-white p-8 rounded-lg shadow-md w-96 overflow-auto max-h-[100vh]">
+            <h2 className="text-lg font-bold mb-4">
+              {editData ? "Edit Order" : "Add Order"}
+            </h2>
             {error && <p className="text-red-500">{error}</p>}
             <form onSubmit={handleSubmit}>
               <label
@@ -539,16 +809,14 @@ export default function Orders() {
                 htmlFor="input1"
                 className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
               >
-                Reference
+                Reference Name
               </label>
-              <input
-                type="text"
-                name="WoReferenceID"
-                value={formData.WoReferenceID}
-                onChange={handleChange}
+              <Select
+                className="mb-3"
+                options={comboNames}
+                value={selectedStation}
+                onChange={handleStationSelect}
                 onKeyDown={handleKeyDown}
-                placeholder="Reference"
-                className="mb-2 p-2 border rounded"
                 tabIndex={2}
               />
               <label
@@ -566,12 +834,61 @@ export default function Orders() {
                 className="mb-4 p-2 border rounded"
                 tabIndex={3}
               />
+              <label
+                htmlFor="input1"
+                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              >
+                Pass Quantity
+              </label>
+              <input
+                type="text"
+                name="PassQTY"
+                value={formData.PassQTY}
+                onChange={handleChange}
+                placeholder="Pass"
+                className="mb-4 p-2 border rounded"
+                tabIndex={4}
+                readOnly={!editData}
+              />
+              <label
+                htmlFor="input1"
+                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              >
+                Fail Quantity
+              </label>
+              <input
+                type="text"
+                name="FailQTY"
+                value={formData.FailQTY}
+                onChange={handleChange}
+                placeholder="Fail"
+                className="mb-4 p-2 border rounded"
+                tabIndex={5}
+                readOnly={!editData}
+              />
+              <label
+                htmlFor="input1"
+                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              >
+                Status
+              </label>
+              <select
+                id="WoStatus"
+                name="WoStatus"
+                value={formData.WoStatus}
+                onChange={handleChange}
+                className="mb-2 p-2 border rounded"
+                tabIndex={6}
+              >
+                <option value="Open">Open</option>
+                <option value="Close">Close</option>
+              </select>
               <div className="flex justify-between">
                 <button
                   type="submit"
                   className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
                 >
-                  Save
+                  {editData ? "Update" : "Save"}
                 </button>
                 <button
                   type="button"

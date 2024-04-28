@@ -41,7 +41,6 @@ const EditProfileForm = () => {
     };
     fetchData();
   }, []);
-console.log('previewImage',previewImage)
   const onDrop = (acceptedFiles) => {
     const file = acceptedFiles[0];
     const reader = new FileReader();
@@ -71,9 +70,10 @@ console.log('previewImage',previewImage)
         }
       };
       const response = await axios.put(apiUrl, formData, config);
-      console.log('Profile updated successfully:', response.data);
+      
       // Reset form fields
       setErrorMessage('');
+toast.success("Updated profile succes")
     } catch (error) {
       toast.error('Failed to update profile:', error.response.data);
       setErrorMessage(error.response.data.message);

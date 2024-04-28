@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense, lazy } from "react";
 import useStore from './useStore';
 import { Outlet } from "react-router-dom";
 import { MenuContext } from '../context/menu/Menu.context'
-import Sidebar from "../Shared/Sidebar";
 // import Header from "./Header";
 import ErrorBoundary from "../../ErrorBoundary ";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+const Sidebar = lazy(() => import("../Shared/Sidebar"));
+
 // import Sidebar from "../Sidebar/sidebar";
 
 const refreshToken = async () => {
@@ -39,7 +40,7 @@ const refreshToken = async () => {
   
           // Redirect ke halaman login setelah 2 detik
           setTimeout(() => {
-            window.location.href = '/login';
+            window.location.href = '/';
           }, 2000);
         }
         // Menampilkan pesan error menggunakan React Toastify
@@ -73,12 +74,12 @@ export default function Layout() {
 
   return (
     <div className="bg-white h-screen w-screen overflow-hidden flex flex-row">
-      <MenuContext.Provider value={{ open, setOpen }}>
-        {/* <div className='bg-teal-200'>Sidebar</div> */}
+     
+     <Suspense fallback={<div>Loading Sidebar...</div>}>
         <ErrorBoundary>
           <Sidebar />
         </ErrorBoundary>
-
+        </Suspense>
         <div className="flex flex-col flex-1">
           {/* <ErrorBoundary>
             <Header />
@@ -96,7 +97,7 @@ export default function Layout() {
         </div>
         {/* <div className='bg-sky-200'>Header</div> */}
         {/* <p>Footer</p> */}
-      </MenuContext.Provider>
+      
     </div>
   );
 }

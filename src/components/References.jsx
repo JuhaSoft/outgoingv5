@@ -606,7 +606,7 @@ export default function References() {
       </div>
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75">
-          <div className="bg-white p-8 rounded-lg shadow-md w-96">
+          <div className="bg-white p-8 rounded-lg shadow-md w-96 overflow-auto max-h-[80vh]">
             <h2 className="text-lg font-bold mb-4">
               {editData ? "Edit Reference" : "Add Reference"}
             </h2>
