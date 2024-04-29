@@ -2,6 +2,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* Styling untuk carousel */
+.carousel .slick-slide > div {
+	@apply px-2;
+  }
+  
+  .carousel .slick-dots li button:before {
+	@apply text-gray-400;
+  }
+  
+  .carousel .slick-dots li.slick-active button:before {
+	@apply text-blue-500;
+  }
 @layer base {
 	html {
 		font-family: 'Inter', sans-serif;

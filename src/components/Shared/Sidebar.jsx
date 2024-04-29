@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { MdOutlineInventory } from "react-icons/md";
 import { HiOutlineLogout } from 'react-icons/hi';
 import { DASHBOARD_SIDEBAR_LINKS, DASHBOARD_SIDEBAR_BOTTOM_LINKS } from '../../lib/constants';
-import { FaRegCircleUser } from "react-icons/fa";
 import { HiOutlineCog } from "react-icons/hi";
 import classNames from 'classnames';
 import { motion } from 'framer-motion'; // Import motion from framer-motion
@@ -16,7 +14,6 @@ export default function Sidebar() {
     siteName: process.env.REACT_APP_SITENAME,
   };
   const api = appConfig.APIHOST;
-  const { pathname } = useLocation();
   const navigate = useNavigate();
   const [openSubMenu, setOpenSubMenu] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -58,7 +55,12 @@ export default function Sidebar() {
 
   const handleLogout = () => {
     setIsLoggingOut(true); // Start logout process
-    localStorage.removeItem('token'); // Remove token from localStorage
+    localStorage.removeItem('token');
+          localStorage.removeItem('UserId');
+          localStorage.removeItem('username');
+          localStorage.removeItem('DisplayName');
+          localStorage.removeItem('DisplayName');
+          localStorage.removeItem('Role');
     setTimeout(() => {
       setIsLoggedIn(false);
       setIsLoggingOut(false); // Finish logout process
