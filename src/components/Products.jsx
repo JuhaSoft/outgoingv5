@@ -1,22 +1,27 @@
 import React, { useEffect, useState } from "react";
-import Select from "react-select";
 import axios from "axios";
 import { FaEye, FaEdit } from "react-icons/fa";
 import ReactPaginate from "react-paginate";
-import { format } from "date-fns";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 // import CarouselGallery from '../components/CarouselGallery';
-import Slider from "react-slick";
+import ImageModal from "./ImageModal";
 import Webcam from "react-webcam";
+import { FaCamera } from "react-icons/fa";
+import { GrGallery } from "react-icons/gr";
 export default function Products() {
   const appConfig = window.globalConfig || {
     siteName: process.env.REACT_APP_SITENAME,
   };
   const api = appConfig.APIHOST;
   const [error, setError] = useState("");
+  const [totalRecord, setTotalRecord] = useState(0);
+  const [pageCount, setpageCount] = useState(0);
+  const [psnEdit, setPsnEdit] = useState("");
+  const [showModalGalery, setShowModalGalery] = useState(false);
+  const [selectedImages, setSelectedImages] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingData, setEditingData] = useState(null);
   const [query, setQuery] = useState("");
@@ -59,7 +64,6 @@ export default function Products() {
   const [isWoRunning, setIsWoRunning] = useState(
     localStorage.getItem("woStartRun") === "true"
   );
-
   const handleRunStop = () => {
     if (isWoRunning) {
       localStorage.setItem("woStartRun", "false");
@@ -70,7 +74,6 @@ export default function Products() {
     }
   };
   let token = localStorage.getItem("token");
-
   const [editData, setEditData] = useState(null);
   const openModal = () => {
     setError("");
@@ -81,14 +84,28 @@ export default function Products() {
   const [detailData, setDetailData] = useState([]);
   const [trackId, setTrackId] = useState("");
   const [trackPSN, setTrackPSN] = useState("");
-  const fetchDataTracks = async () => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const fetchDataTracks = async (pageNumber = 1, pageSize = 10) => {
     try {
-      console.log(`${api}/api/DataTracks`);
-      const response = await axios.get(`${api}/api/DataTracks`);
+      const response = await axios.get(
+        `${api}/api/DataTracks/order/${selectedData.WoNumber}`,
+        {
+          params: {
+            searchQuery: searchQuery,
+            pageNumber: pageNumber,
+            pageSize: pageSize,
+          },
+        }
+      );
       setDataTracks(response.data.DataTracks.$values);
+      setTotalRecord(response.data.TotalItems);
+      setpageCount(response.data.TotalPages);
     } catch (error) {}
   };
-
+  const handlePageClick = (data) => {
+    const currentPage = data.selected + 1;
+    fetchDataTracks(currentPage);
+  };
   const fetchDetailData = async (id) => {
     try {
       const response = await axios.get(`${api}/api/DataTrackChecks/${id}`);
@@ -101,13 +118,11 @@ export default function Products() {
       toast.error("Error fetching detail data:", error);
     }
   };
-
   const handleImageClick = (images, index) => {
     setCurrentImageModalImages(images);
     setCurrentImageIndex(index);
     setShowImageModal(true);
   };
-
   const handleDetailClick = (id, psn) => {
     setOpenCollapse((prevOpenCollapse) => ({
       ...prevOpenCollapse,
@@ -119,7 +134,7 @@ export default function Products() {
     try {
       const response = await axios.get(`${api}/api/DataTracks/${id}`);
       const trackData = response.data;
-
+setPsnEdit(response.data.TrackPSN)
       const detailDataResponse = await axios.get(
         `${api}/api/DataTrackChecks/${id}`
       );
@@ -172,6 +187,7 @@ export default function Products() {
       );
       const transformedData = transformData(response.data);
       setApiData(transformedData);
+
       setDataTrackCheckings(
         transformedData.ParameterChecks.map((check) => ({
           PCId: check.Id,
@@ -238,9 +254,11 @@ export default function Products() {
         PCId: item.PCId,
         DTCValue: item.Result,
         DTCisDeleted: false,
-        ImageDataChecks: parameterGalleries[index].map((imageUrl) => ({
-          ImageUrl: imageUrl,
-        })),
+        ImageDataChecks: parameterGalleries[index]
+          ? parameterGalleries[index].map((imageUrl) => ({
+              ImageUrl: imageUrl,
+            }))
+          : [],
       })),
     };
 
@@ -261,7 +279,7 @@ export default function Products() {
         toast.success("Data berhasil dikirim ke server");
         setShowModal(false);
         fetchDataTracks();
-        setOpenCollapse({})
+        setOpenCollapse({});
         // Lakukan tindakan lain yang diperlukan setelah berhasil
       } else {
         // Penanganan error
@@ -321,12 +339,6 @@ export default function Products() {
     };
 
     try {
-      console.log(`${api}/api/DataTracks/${id}`, updatedData, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
       const response = await axios.put(
         `${api}/api/DataTracks/${id}`,
         updatedData,
@@ -342,7 +354,7 @@ export default function Products() {
         toast.success("Data berhasil diupdate");
         closeModal();
         setEditingData(null);
-        setOpenCollapse({})
+        setOpenCollapse({});
         fetchDataTracks(); // Refresh data setelah update
       } else {
         toast.error("Gagal mengupdate data");
@@ -429,6 +441,7 @@ export default function Products() {
               ? apiData.ParameterChecks.map(() => [])
               : []
           );
+          setEditingData(null)
           setShowModal(true);
         } else {
           setErrorProduct(data.Description);
@@ -471,7 +484,19 @@ export default function Products() {
       }
     }
   }
+  const handleImageGaleyClick = (images, index) => {
+    setSelectedImages(images);
+    setShowModalGalery(true);
+  };
+  const handleSearch = (event) => {
+    event.preventDefault();
 
+    fetchDataTracks();
+  };
+  const handleCloseModalGalery = () => {
+    setShowModalGalery(false);
+    setSelectedImages([]);
+  };
   useEffect(() => {
     if (!error && !showModal) {
       setError("");
@@ -494,10 +519,9 @@ export default function Products() {
   useEffect(() => {
     fetchDataTracks();
   }, []);
-  console.log("parameterGalleries", parameterGalleries);
-
   return (
     <div className="z-0 ">
+       <h2>Product</h2>
       {isLoading && <div className="loading-animation">Loading...</div>}
       {selectedData && (
         <div className="mb-4">
@@ -531,7 +555,7 @@ export default function Products() {
             name="inputPSN"
             className="flex-grow px-4 py-2 border rounded-l"
             type="text"
-            placeholder="PSN..."
+            placeholder="PSN for process ..."
             value={query}
             onChange={handleChangeProduct}
             onKeyPress={handleKeyPressProduct}
@@ -562,94 +586,130 @@ export default function Products() {
 
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75">
-          <div className="bg-white p-8 rounded-lg shadow-md overflow-auto max-h-full w-3/4">
+          <div className="bg-white p-8 rounded-lg shadow-md overflow-auto max-h-full w-4/5">
             <h2 className="text-lg font-bold mb-4">
-              {editingData ? "Edit Data" : "Cek Produk"}
+              {editingData ? "Edit Data PSN : " +psnEdit  : "Cek PSN : "+psnBarcode}
             </h2>
             {error && <p className="text-red-500">{error}</p>}
-            {apiData &&
-              apiData.ParameterChecks.map((check, index) => (
-                <div key={check.Id} className="flex items-center mb-4">
-                  <label className="w-64 font-semibold">
-                    {check.Description}
-                  </label>
-                  <div className="flex items-center">
-                    <select
-                      className="border border-gray-300 rounded p-2"
-                      value={
-                        dataTrackCheckings.find(
-                          (item) => item.PCId === check.Id
-                        )?.Result || ""
-                      }
-                      onChange={(e) => {
-                        const newDataTrackCheckings = dataTrackCheckings.map(
-                          (item) =>
-                            item.PCId === check.Id
-                              ? { ...item, Result: e.target.value }
-                              : item
-                        );
-                        setDataTrackCheckings(newDataTrackCheckings);
-                      }}
-                    >
-                      <option value="">Pilih Hasil</option>
-                      <option value="Pass">Pass</option>
-                      <option value="Fail">Fail</option>
-                    </select>
-                    {parameterGalleries[index] &&
-                      parameterGalleries[index].length > 0 && (
-                        <div className="mt-4 w-full">
-                          <div className="relative overflow-hidden rounded-md">
-                            <div className="flex transition-transform duration-300 ease-in-out">
-                              {parameterGalleries[index].map(
-                                (imageUrl, imgIndex) => (
-                                  <div
-                                    key={imgIndex}
-                                    className="flex-shrink-0 w-32 h-32 relative"
-                                  >
-                                    <img
-                                      src={imageUrl}
-                                      alt={`Gallery Image ${imgIndex}`}
-                                      className="w-full h-full rounded-md object-cover border border-gray-200"
-                                    />
-                                    <button
-                                      name="buttonDelete"
-                                      className="absolute top-0 right-0 mt-1 mr-1 p-1 bg-red-500 text-white rounded-full text-sm focus:outline-none"
-                                      onClick={() =>
-                                        removeImageFromGallery(index, imgIndex)
-                                      }
-                                    >
-                                      X
-                                    </button>
-                                  </div>
-                                )
-                              )}
+            <div className="flex flex-wrap">
+              {apiData &&
+                apiData.ParameterChecks.map((check, index) => (
+                  <div key={check.Id} className="flex items-center mb-2">
+                    <label className="w-64 font-semibold">
+                      {check.Description}
+                    </label>
+                    <div className="flex items-center">
+                      <select
+                        className="border border-gray-300 rounded p-2"
+                        value={
+                          dataTrackCheckings.find(
+                            (item) => item.PCId === check.Id
+                          )?.Result || ""
+                        }
+                        onChange={(e) => {
+                          const newDataTrackCheckings = dataTrackCheckings.map(
+                            (item) =>
+                              item.PCId === check.Id
+                                ? { ...item, Result: e.target.value }
+                                : item
+                          );
+                          setDataTrackCheckings(newDataTrackCheckings);
+                        }}
+                      >
+                        <option value="Pass">Pass</option>
+                        <option value="Fail">Fail</option>
+                      </select>
+                      <div className="mx-2">
+                        {parameterGalleries[index] &&
+                          parameterGalleries[index].length > 0 && (
+                            <div className="mt-4 w-full">
+                              <div className="relative overflow-hidden rounded-md">
+                                <div className="flex transition-transform duration-300 ease-in-out">
+                                  {parameterGalleries[index].map(
+                                    (imageUrl, imgIndex) => (
+                                      <div
+                                        key={imgIndex}
+                                        className="flex-shrink-0 w-32 h-32 relative"
+                                      >
+                                        <img
+                                          src={imageUrl}
+                                          alt={`Gallery Image ${imgIndex}`}
+                                          className="w-full h-full rounded-md object-cover border border-gray-200"
+                                          onClick={() =>
+                                            handleImageGaleyClick(
+                                              parameterGalleries[index].map(
+                                                (url, idx) => ({
+                                                  url,
+                                                  alt: `Gallery Image ${idx}`,
+                                                })
+                                              ),
+                                              imgIndex
+                                            )
+                                          }
+                                        />
+                                        <button
+                                          name="buttonDelete"
+                                          className="absolute top-0 right-0 mt-1 mr-1 p-1 bg-red-500 text-white rounded-full text-sm focus:outline-none"
+                                          onClick={() =>
+                                            removeImageFromGallery(
+                                              index,
+                                              imgIndex
+                                            )
+                                          }
+                                        >
+                                          X
+                                        </button>
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
+                          )}
+                      </div>
+                      {showModalGalery && selectedImages.length > 0 && (
+                        <ImageModal
+                          images={selectedImages}
+                          onClose={handleCloseModalGalery}
+                        />
                       )}
-                    {/* <CarouselGallery images={parameterGalleries[index]} /> */}
-
-                    <div className="mt-4">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileUpload(e, index)}
-                      />
-                      <button onClick={() => handleCameraCapture(index)}>
-                        Capture from Webcam
-                      </button>
-                    </div>
-                    <div className="mt-4">
-                      <Webcam
-                        audio={false}
-                        ref={webcamRef}
-                        screenshotFormat="image/jpeg"
-                        className="w-44 h-28" // Atur ukuran preview webcam di sini
-                      />
+                      <div className="mt-1 flex items-center">
+                        <button
+                          htmlFor="fileInput"
+                          className="w-12 h-12 bg-blue-500 text-white rounded-md  items-cente"
+                          onClick={() =>
+                            document.getElementById("fileInput").click()
+                          }
+                        >
+                          <GrGallery className="mx-auto" />
+                        </button>
+                        <input
+                          id="fileInput"
+                          type="file"
+                          accept="image/*"
+                          style={{ display: "none" }}
+                          onChange={(e) => handleFileUpload(e, index)}
+                        />
+                        <button
+                          onClick={() => handleCameraCapture(index)}
+                          className="w-12 h-12 bg-green-500 text-white rounded-md  items-center"
+                        >
+                          <FaCamera className="mx-auto" />
+                        </button>
+                      </div>
+                      <div className="mt-4">
+                        <Webcam
+                          audio={false}
+                          ref={webcamRef}
+                          screenshotFormat="image/jpeg"
+                          className="w-44 h-28 " // Atur ukuran preview webcam di sini
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+            </div>
+
             <div className="flex justify-between">
               <button
                 type="submit"
@@ -670,108 +730,173 @@ export default function Products() {
           </div>
         </div>
       )}
-      <div className="container mx-auto">
-        <h1 className="text-2xl font-bold mb-4">Data Tracks</h1>
-        <table className="table-auto w-full">
-          <thead>
-            <tr>
-              <th className="px-4 py-2">PSN</th>
-              <th className="px-4 py-2">Status</th>
-              <th className="px-4 py-2">Order</th>
-              <th className="px-4 py-2">Reference</th>
-              <th className="px-4 py-2">Last Station</th>
-              <th className="px-4 py-2">Line</th>
-              <th className="px-4 py-2">Date</th>
-              <th className="px-4 py-2">User Checked</th>
-              <th className="px-4 py-2">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {dataTracks.map((track) => (
-              <React.Fragment key={track.Id}>
-                <tr
-                  className={`border-b  ${
-                    track.TrackingStatus === "PASS" ? "bg-white" : "bg-red-300"
-                  } `}
+      <div className="container mx-auto bg-gray-200 rounded-lg p-2">
+        <h1 className="text-2xl font-bold ">Data Track</h1>
+        <div className="relative flex-grow  sm:w-3/4 md:w-auto mb-2">
+          <form
+            className="max-w-lg mx-auto md:flex md:items-center md:flex-row-reverse items-center "
+            onSubmit={handleSearch}
+          >
+            <div className="relative flex-grow  sm:w-3/4 md:w-auto ">
+              <label htmlFor="search-dropdown" className="sr-only">
+                Search
+              </label>
+              <input
+                type="search"
+                id="search-dropdown"
+                className=" block w-full p-2.5 text-sm text-gray-900 bg-gray-50 rounded-l-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:border-blue-500"
+                placeholder="Search PSN ..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <button
+                type="submit"
+                className="absolute top-0 right-0 p-2.5 text-sm font-medium h-full text-white bg-green-600 rounded-r-lg border border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 "
+              >
+                <svg
+                  className="w-4 h-4"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 20 20"
                 >
-                  <td className="px-4 py-2">{track.TrackPSN}</td>
-                  <td className="px-4 py-2">{track.TrackingStatus}</td>
-                  <td className="px-4 py-2">{track.TrackingWO}</td>
-                  <td className="px-4 py-2">{track.TrackReference}</td>
-                  <td className="px-4 py-2">
-                    {track.LastStationID.StationName}
-                  </td>
-                  <td className="px-4 py-2">
-                    {track.LastStationID.DataLine.LineName}
-                  </td>
-                  <td className="px-4 py-2">
-                    {new Date(track.TrackingDateCreate).toLocaleString()}
-                  </td>
-                  <td className="px-4 py-2">{track.User.DisplayName}</td>
-                  <td className="px-4 py-2 flex">
-                    <button
-                      className="mr-2 hover:text-blue-500"
-                      onClick={() =>
-                        handleDetailClick(track.Id, track.TrackPSN)
-                      }
-                    >
-                      <FaEye size={20} title="Detail" />
-                    </button>
-                    <button
-                      className="hover:text-green-500"
-                      onClick={() => handleEditClick(track.Id)}
-                    >
-                      <FaEdit size={20} title="Edit" />
-                    </button>
-                  </td>
-                </tr>
-                {openCollapse[track.Id] && detailDataMap[track.Id] && (
-                  <tr>
-                    <td colSpan="8" className="px-4 py-2">
-                      <div className="mt-2 px-9">
-                        <h2 className="text-xl font-bold">
-                          Detail Data for Track ID: {track.TrackPSN}
-                        </h2>
-                        {detailDataMap[track.Id].map((detail, index) => (
-                          <div key={index} className="mb-1">
-                            <div className="bg-gray-200 p-1 rounded">
-                              <div className="flex items-center justify-start gap-6 mb-1">
-                                <h3 className="text-lg font-bold">
-                                  {detail.ParameterCheck.Description}
-                                </h3>
-                                <span className="text-sm font-medium">
-                                  {detail.DTCValue}
-                                </span>
-                                <div className="grid grid-cols-5 gap-4">
-                                  {detail.ImageDataChecks.$values.map(
-                                    (image, imageIndex) => (
-                                      <img
-                                        key={imageIndex}
-                                        src={`${api}${image.ImageUrl}`}
-                                        alt={`Image ${imageIndex + 1}`}
-                                        className="w-12 h-12 object-cover rounded cursor-pointer"
-                                        onClick={() =>
-                                          handleImageClick(
-                                            detail.ImageDataChecks.$values,
-                                            imageIndex
-                                          )
-                                        }
-                                      />
-                                    )
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                  <path
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"
+                  />
+                </svg>
+                <span className="sr-only">Search</span>
+              </button>
+            </div>
+          </form>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="table-auto w-full rounded-lg">
+            <thead className="bg-green-500 text-white rounded-tl-2xl">
+              <tr>
+                <th className="px-4 py-2">PSN</th>
+                <th className="px-4 py-2">Status</th>
+                <th className="px-4 py-2">Order</th>
+                <th className="px-4 py-2">Reference</th>
+                <th className="px-4 py-2">Last Station</th>
+                <th className="px-4 py-2">Line</th>
+                <th className="px-4 py-2">Date</th>
+                <th className="px-4 py-2">User Checked</th>
+                <th className="px-4 py-2">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dataTracks.map((track) => (
+                <React.Fragment key={track.Id}>
+                  <tr
+                    className={`border-b ${
+                      track.TrackingStatus === "PASS"
+                        ? "bg-white"
+                        : "bg-red-100"
+                    } rounded-full `}
+                  >
+                    <td className="px-4 py-2 hidden sm:table-cell">
+                      {track.TrackPSN}
+                    </td>
+                    <td className="px-4 py-2 hidden sm:table-cell">
+                      {track.TrackingStatus}
+                    </td>
+                    <td className="px-4 py-2 hidden sm:table-cell">
+                      {track.TrackingWO}
+                    </td>
+                    <td className="px-4 py-2 hidden sm:table-cell">
+                      {track.TrackReference}
+                    </td>
+                    <td className="px-4 py-2 hidden sm:table-cell">
+                      {track.LastStationID.StationName}
+                    </td>
+                    <td className="px-4 py-2 hidden sm:table-cell">
+                      {track.LastStationID.DataLine.LineName}
+                    </td>
+                    <td className="px-4 py-2 hidden sm:table-cell">
+                      {new Date(track.TrackingDateCreate).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-2 hidden sm:table-cell">
+                      {track.User.DisplayName}
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="flex">
+                        <button
+                          className="mr-2 hover:text-blue-500"
+                          onClick={() =>
+                            handleDetailClick(track.Id, track.TrackPSN)
+                          }
+                        >
+                          <FaEye size={20} title="Detail" />
+                        </button>
+                        <button
+                          className="hover:text-green-500"
+                          onClick={() => handleEditClick(track.Id)}
+                        >
+                          <FaEdit size={20} title="Edit" />
+                        </button>
                       </div>
                     </td>
                   </tr>
-                )}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
+                  {openCollapse[track.Id] && detailDataMap[track.Id] && (
+                    <tr>
+                      <td colSpan="9" className="px-1 py-2">
+                        <div className="">
+                          <h2 className="text-xl font-bold">
+                            Detail Data for Track ID: {track.TrackPSN}
+                          </h2>
+                          <table className="w-full ">
+                            <tbody className="bg-slate-100">
+                              {detailDataMap[track.Id].map((detail, index) => (
+                                <tr
+                                  key={index}
+                                  className={`border-b  ${
+                                    detail.DTCValue === "Pass" ||
+                                    detail.DTCValue === "PASS"
+                                      ? "bg-white"
+                                      : "bg-red-100"
+                                  } rounded-full `}
+                                >
+                                  <td className="w-auto">
+                                    {detail.ParameterCheck.Description}
+                                  </td>
+                                  <td className="">{detail.DTCValue}</td>
+                                  <td className="">
+                                    <div className="flex gap-2">
+                                      {detail.ImageDataChecks.$values.map(
+                                        (image, imageIndex) => (
+                                          <img
+                                            key={imageIndex}
+                                            src={`${api}${image.ImageUrl}`}
+                                            alt={`Image ${imageIndex + 1}`}
+                                            className="w-12 h-12 object-cover rounded cursor-pointer"
+                                            onClick={() =>
+                                              handleImageClick(
+                                                detail.ImageDataChecks.$values,
+                                                imageIndex
+                                              )
+                                            }
+                                          />
+                                        )
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
       {showImageModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75">
@@ -847,6 +972,55 @@ export default function Products() {
           </div>
         </div>
       )}
+      <div className=" mt-1 w-full">
+        <div className="flex flex-col md:flex-row justify-start md:justify-between">
+          <div className="w-full mt-2">
+            <div className="sm:flex-none sm:object-center ">
+              <select
+                name="item"
+                className="  w-16   text-base   bg-white text-gray-800 border border-green-700 rounded items-center   align-middle  justify-start"
+                // onChange={(e) => handlerecordPerPage(e)}
+              >
+                <option>10</option>
+                <option>20</option>
+                <option>30</option>
+                <option>50</option>
+                <option>100</option>
+              </select>
+              <div>From {totalRecord} Record</div>
+            </div>
+          </div>
+          <div className="flex align-middle  md:justify-end ">
+            <ReactPaginate
+              previousLabel={"previous"}
+              nextLabel={"next"}
+              breakLabel={"..."}
+              pageCount={pageCount}
+              marginPagesDisplayed={2}
+              pageRangeDisplayed={3}
+              onPageChange={handlePageClick}
+              containerClassName={"flex justify-center mt-4"}
+              pageClassName={"mx-1"}
+              pageLinkClassName={
+                "px-3 py-2 bg-white text-green-500 border border-green-500 rounded-md"
+              }
+              previousClassName={"mr-1"}
+              previousLinkClassName={
+                "px-3 py-2 bg-white text-green-500 border border-green-500 rounded-md"
+              }
+              nextClassName={"ml-1"}
+              nextLinkClassName={
+                "px-3 py-2 bg-white text-green-500 border border-green-500 rounded-md"
+              }
+              breakClassName={"mx-1"}
+              breakLinkClassName={
+                "px-3 py-2 bg-white text-green-500 border border-green-500 rounded-md"
+              }
+              activeClassName={"font-bold  text-white"}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

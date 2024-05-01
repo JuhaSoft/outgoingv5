@@ -6,9 +6,6 @@ import ReactPaginate from "react-paginate";
 import { format } from "date-fns";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Modal from "../Shared/Modal";
-import { FaRegTrashAlt } from "react-icons/fa";
-import { User } from "react-feather";
 export default function Orders() {
   const appConfig = window.globalConfig || {
     siteName: process.env.REACT_APP_SITENAME,
@@ -16,8 +13,6 @@ export default function Orders() {
   const api = appConfig.APIHOST;
   const [openDlg, setOpenDlg] = useState(false);
   const [error, setError] = useState("");
-  const [idDelete, setidDelete] = useState("");
-  const [StationIDDelete, setStationIDDelete] = useState("");
   const [saveData, setSaveData] = useState(Boolean);
   const [dataProduct, setdataProduct] = useState([]);
   const [tbldata, settbldata] = useState("");
@@ -31,7 +26,6 @@ export default function Orders() {
   const [selectedData, setSelectedData] = useState(
     JSON.parse(localStorage.getItem("selectedOrder"))
   );
-  const [selectedOptionCombo, setSelectedOptionCombo] = useState(null);
   const [selectedStation, setSelectedStation] = useState(null);
   let token = localStorage.getItem("token");
   let UserId = localStorage.getItem("UserId");
@@ -416,6 +410,7 @@ export default function Orders() {
   };
   return (
     <div className="z-0 ">
+       <h5 className="text-xl">Order</h5>
       {selectedData && (
         <div className="mb-4">
           <div className="w-full m-2 overflow-hidden rounded-lg shadow-lg bg-gray-100 ">

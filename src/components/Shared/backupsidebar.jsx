@@ -26,7 +26,7 @@ export default function Sidebar() {
   const userAvatar = `${api}${localStorage.getItem("Image")}`; // Get user avatar
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const userRole = localStorage.getItem("Role");
-
+  const [activeRoute, setActiveRoute] = useState("");
   useEffect(() => {
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
@@ -96,7 +96,12 @@ export default function Sidebar() {
     }
     return accessList.includes(userRole); // Check if user role is in access list
   };
-
+  useEffect(() => {
+    const currentRoute = DASHBOARD_SIDEBAR_LINKS.find(
+      (item) => pathname.includes(item.key)
+    )?.key;
+    setActiveRoute(currentRoute || "");
+  }, [pathname]);
   return (
     <div className="flex flex-col bg-green-600 w-45 pl-1 rounded-l-lg sm:w-44">
       {/* Sidebar content... */}
@@ -249,22 +254,36 @@ export default function Sidebar() {
   );
 
 function SideBarLink({ item, handleSubMenuToggle, openSubMenu }) {
+  // const { pathname } = useLocation();
+  // const isCurrentPath = pathname === item.path;
+  // const hasSubMenu = item.hasSubMenu;
+  // const isOpen = openSubMenu === item.key;
+  // const navigate = useNavigate();
+
+  // const handleClick = () => {
+  //   if (hasSubMenu) {
+  //     handleSubMenuToggle(isOpen ? null : item.key);
+  //   } else {
+  //     if (pathname !== item.path) {
+  //       navigate(item.path);
+  //     }
+  //   }
+  // };
   const { pathname } = useLocation();
-  const isCurrentPath = pathname === item.path;
+  const isCurrentPath = activeRoute === item.key; // Gunakan activeRoute untuk menentukan menu aktif
   const hasSubMenu = item.hasSubMenu;
   const isOpen = openSubMenu === item.key;
   const navigate = useNavigate();
-  
+
   const handleClick = () => {
     if (hasSubMenu) {
       handleSubMenuToggle(isOpen ? null : item.key);
     } else {
-      if (pathname !== item.path) {
-        navigate(item.path);
+      if (pathname !== `/${item.key}`) {
+        navigate(`/${item.key}`);
       }
     }
   };
-
   return (
     <div>
       <div
@@ -273,7 +292,7 @@ function SideBarLink({ item, handleSubMenuToggle, openSubMenu }) {
       >
         <div
           className={classNames(
-            isCurrentPath && !hasSubMenu ? "active " : "",
+            isCurrentPath ? "active " : "",
             linkClass,
             "text-white"
           )}
