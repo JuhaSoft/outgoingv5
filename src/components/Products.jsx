@@ -83,17 +83,15 @@ export default function Products() {
   const [trackPSN, setTrackPSN] = useState("");
   const fetchDataTracks = async () => {
     try {
+      console.log(`${api}/api/DataTracks`);
       const response = await axios.get(`${api}/api/DataTracks`);
       setDataTracks(response.data.DataTracks.$values);
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
   const fetchDetailData = async (id) => {
     try {
-      const response = await axios.get(
-        `${api}/api/DataTrackChecks/${id}`
-      );
+      const response = await axios.get(`${api}/api/DataTrackChecks/${id}`);
       setDetailDataMap((prevMap) => ({
         ...prevMap,
         [id]: response.data.$values,
@@ -103,7 +101,7 @@ export default function Products() {
       toast.error("Error fetching detail data:", error);
     }
   };
-  
+
   const handleImageClick = (images, index) => {
     setCurrentImageModalImages(images);
     setCurrentImageIndex(index);
@@ -119,9 +117,7 @@ export default function Products() {
   };
   const handleEditClick = async (id) => {
     try {
-      const response = await axios.get(
-        `${api}/api/DataTracks/${id}`
-      );
+      const response = await axios.get(`${api}/api/DataTracks/${id}`);
       const trackData = response.data;
 
       const detailDataResponse = await axios.get(
@@ -136,7 +132,7 @@ export default function Products() {
         Order: item.ParameterCheck.Order,
         Result: item.DTCValue,
         ImageDataChecks: item.ImageDataChecks.$values.map(
-          (image) =>  `${api}${image.ImageUrl}`
+          (image) => `${api}${image.ImageUrl}`
         ),
       }));
       setApiData((prevData) => ({
@@ -149,8 +145,8 @@ export default function Products() {
           PCId: check.Id,
           Result: check.Result,
         }))
-      )
-      
+      );
+
       // Mengisi data detail ke dataTrackCheckings
       const newDataTrackCheckings = parameterChecks.map(({ Id, Result }) => ({
         PCId: Id,
@@ -263,6 +259,9 @@ export default function Products() {
       if (response.status === 200) {
         // Penanganan sukses
         toast.success("Data berhasil dikirim ke server");
+        setShowModal(false);
+        fetchDataTracks();
+        setOpenCollapse({})
         // Lakukan tindakan lain yang diperlukan setelah berhasil
       } else {
         // Penanganan error
@@ -270,7 +269,7 @@ export default function Products() {
         // Lakukan tindakan lain yang diperlukan saat terjadi error
       }
     } catch (error) {
-      toast.error("Error saat mengirim data ke server:", error)
+      toast.error("Error saat mengirim data ke server:", error);
       // Lakukan tindakan lain yang diperlukan saat terjadi error
     }
   };
@@ -286,24 +285,35 @@ export default function Products() {
   };
 
   const addImageToGallery = (imageUrl, index) => {
-    if (parameterGalleries[index].length < 5) {
-      setParameterGalleries((prevGalleries) => {
-        const newGalleries = [...prevGalleries];
+    setParameterGalleries((prevGalleries) => {
+      const newGalleries = [...prevGalleries];
+
+      if (!newGalleries[index]) {
+        newGalleries[index] = [];
+      }
+
+      if (newGalleries[index].length < 5) {
         newGalleries[index] = [...newGalleries[index], imageUrl];
-        return newGalleries;
-      });
-    } else {
-      toast.error("Maximum 5 images allowed in the gallery");
-    }
+      } else {
+        toast.error("Maximum 5 images allowed in the gallery");
+      }
+
+      return newGalleries;
+    });
   };
   const handleUpdateData = async () => {
     const id = editingData.Id;
+    const allPassed = dataTrackCheckings.every(
+      (item) => item.Result === "Pass" || item.Result === "PASS"
+    );
     const updatedData = {
       ...editingData,
-      DataTrackCheckings: editingData.DataTrackCheckings.map((item, index) => ({
+      TrackingResult: allPassed ? "PASS" : "FAIL",
+      TrackingStatus: allPassed ? "PASS" : "FAIL",
+      DataTrackCheckings: dataTrackCheckings.map((item, index) => ({
         PCId: item.PCId,
-        DTCValue: item.DTCValue, // Ganti dengan nilai yang diperbarui dari form
-        DTCisDeleted: item.DTCisDeleted,
+        DTCValue: item.Result,
+        DTCisDeleted: false,
         ImageDataChecks: parameterGalleries[index].map((imageUrl) => ({
           ImageUrl: imageUrl,
         })),
@@ -311,6 +321,12 @@ export default function Products() {
     };
 
     try {
+      console.log(`${api}/api/DataTracks/${id}`, updatedData, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const response = await axios.put(
         `${api}/api/DataTracks/${id}`,
         updatedData,
@@ -326,12 +342,12 @@ export default function Products() {
         toast.success("Data berhasil diupdate");
         closeModal();
         setEditingData(null);
+        setOpenCollapse({})
         fetchDataTracks(); // Refresh data setelah update
       } else {
         toast.error("Gagal mengupdate data");
       }
     } catch (error) {
-      
       toast.error("Terjadi kesalahan saat mengupdate data");
     }
   };
@@ -471,14 +487,14 @@ export default function Products() {
   useEffect(() => {
     setParameterGalleries(
       apiData && apiData.ParameterChecks
-        ? apiData.ParameterChecks.map(parameter => parameter.ImageDataChecks)
+        ? apiData.ParameterChecks.map((parameter) => parameter.ImageDataChecks)
         : []
     );
   }, [apiData]);
   useEffect(() => {
     fetchDataTracks();
   }, []);
-console.log('parameterGalleries',parameterGalleries)
+  console.log("parameterGalleries", parameterGalleries);
 
   return (
     <div className="z-0 ">
@@ -642,7 +658,7 @@ console.log('parameterGalleries',parameterGalleries)
               >
                 {editingData ? "Update" : "Save"}
               </button>
-             
+
               <button
                 type="button"
                 onClick={closeModal}
@@ -659,7 +675,8 @@ console.log('parameterGalleries',parameterGalleries)
         <table className="table-auto w-full">
           <thead>
             <tr>
-              <th className="px-4 py-2">PSS</th>
+              <th className="px-4 py-2">PSN</th>
+              <th className="px-4 py-2">Status</th>
               <th className="px-4 py-2">Order</th>
               <th className="px-4 py-2">Reference</th>
               <th className="px-4 py-2">Last Station</th>
@@ -670,83 +687,91 @@ console.log('parameterGalleries',parameterGalleries)
             </tr>
           </thead>
           <tbody>
-          {dataTracks.map((track) => (
-  <React.Fragment key={track.Id}>
-    <tr className="border-b">
-      <td className="px-4 py-2">{track.TrackPSN}</td>
-      <td className="px-4 py-2">{track.TrackingWO}</td>
-      <td className="px-4 py-2">{track.TrackReference}</td>
-      <td className="px-4 py-2">{track.LastStationID.StationName}</td>
-      <td className="px-4 py-2">
-        {track.LastStationID.DataLine.LineName}
-      </td>
-      <td className="px-4 py-2">
-        {new Date(track.TrackingDateCreate).toLocaleString()}
-      </td>
-      <td className="px-4 py-2">{track.User.DisplayName}</td>
-      <td className="px-4 py-2 flex">
-        <button
-          className="mr-2 hover:text-blue-500"
-          onClick={() => handleDetailClick(track.Id, track.TrackPSN)}
-        >
-          <FaEye size={20} title="Detail" />
-        </button>
-        <button
-          className="hover:text-green-500"
-          onClick={() => handleEditClick(track.Id)}
-        >
-          <FaEdit size={20} title="Edit" />
-        </button>
-      </td>
-    </tr>
-    {openCollapse[track.Id] && detailDataMap[track.Id] && (
-      <tr>
-        <td colSpan="8" className="px-4 py-2">
-          <div className="mt-2 px-9">
-            <h2 className="text-xl font-bold">
-              Detail Data for Track ID: {track.TrackPSN}
-            </h2>
-            {detailDataMap[track.Id].map((detail, index) => (
-              <div key={index} className="mb-1">
-                <div className="bg-gray-200 p-1 rounded">
-                  <div className="flex items-center justify-start gap-6 mb-1">
-                    <h3 className="text-lg font-bold">
-                      {detail.ParameterCheck.Description}
-                    </h3>
-                    <span className="text-sm font-medium">
-                      {detail.DTCValue}
-                    </span>
-                    <div className="grid grid-cols-5 gap-4">
-                      {detail.ImageDataChecks.$values.map(
-                        (image, imageIndex) => (
-                          <img
-                            key={imageIndex}
-                            src={`${api}${image.ImageUrl}`}
-                            alt={`Image ${imageIndex + 1}`}
-                            className="w-12 h-12 object-cover rounded cursor-pointer"
-                            onClick={() =>
-                              handleImageClick(
-                                detail.ImageDataChecks.$values,
-                                imageIndex
-                              )
-                            }
-                          />
-                        )
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+            {dataTracks.map((track) => (
+              <React.Fragment key={track.Id}>
+                <tr
+                  className={`border-b  ${
+                    track.TrackingStatus === "PASS" ? "bg-white" : "bg-red-300"
+                  } `}
+                >
+                  <td className="px-4 py-2">{track.TrackPSN}</td>
+                  <td className="px-4 py-2">{track.TrackingStatus}</td>
+                  <td className="px-4 py-2">{track.TrackingWO}</td>
+                  <td className="px-4 py-2">{track.TrackReference}</td>
+                  <td className="px-4 py-2">
+                    {track.LastStationID.StationName}
+                  </td>
+                  <td className="px-4 py-2">
+                    {track.LastStationID.DataLine.LineName}
+                  </td>
+                  <td className="px-4 py-2">
+                    {new Date(track.TrackingDateCreate).toLocaleString()}
+                  </td>
+                  <td className="px-4 py-2">{track.User.DisplayName}</td>
+                  <td className="px-4 py-2 flex">
+                    <button
+                      className="mr-2 hover:text-blue-500"
+                      onClick={() =>
+                        handleDetailClick(track.Id, track.TrackPSN)
+                      }
+                    >
+                      <FaEye size={20} title="Detail" />
+                    </button>
+                    <button
+                      className="hover:text-green-500"
+                      onClick={() => handleEditClick(track.Id)}
+                    >
+                      <FaEdit size={20} title="Edit" />
+                    </button>
+                  </td>
+                </tr>
+                {openCollapse[track.Id] && detailDataMap[track.Id] && (
+                  <tr>
+                    <td colSpan="8" className="px-4 py-2">
+                      <div className="mt-2 px-9">
+                        <h2 className="text-xl font-bold">
+                          Detail Data for Track ID: {track.TrackPSN}
+                        </h2>
+                        {detailDataMap[track.Id].map((detail, index) => (
+                          <div key={index} className="mb-1">
+                            <div className="bg-gray-200 p-1 rounded">
+                              <div className="flex items-center justify-start gap-6 mb-1">
+                                <h3 className="text-lg font-bold">
+                                  {detail.ParameterCheck.Description}
+                                </h3>
+                                <span className="text-sm font-medium">
+                                  {detail.DTCValue}
+                                </span>
+                                <div className="grid grid-cols-5 gap-4">
+                                  {detail.ImageDataChecks.$values.map(
+                                    (image, imageIndex) => (
+                                      <img
+                                        key={imageIndex}
+                                        src={`${api}${image.ImageUrl}`}
+                                        alt={`Image ${imageIndex + 1}`}
+                                        className="w-12 h-12 object-cover rounded cursor-pointer"
+                                        onClick={() =>
+                                          handleImageClick(
+                                            detail.ImageDataChecks.$values,
+                                            imageIndex
+                                          )
+                                        }
+                                      />
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
             ))}
-          </div>
-        </td>
-      </tr>
-    )}
-  </React.Fragment>
-))}
           </tbody>
         </table>
-        
       </div>
       {showImageModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75">
