@@ -413,19 +413,110 @@ export default function Orders() {
        <h5 className="text-xl">Order</h5>
       {selectedData && (
         <div className="mb-4">
-          <div className="w-full m-2 overflow-hidden rounded-lg shadow-lg bg-gray-100 ">
-            <h2 className="font-bold text-lg mx-2 ">Selected Data:</h2>
-            <div className="grid grid-cols-5 gap-4 mb-4">
-              <InputField label="WO Number" value={selectedData.WoNumber} />
-              <InputField label="SO Number" value={selectedData.SONumber} />
-              <InputField
-                label="Reference"
-                value={selectedData.WoReferenceID}
-              />
-              <InputField label="WO QTY" value={selectedData.WoQTY} />
+          <div className="mx-auto">
+            <div className="bg-slate-200 shadow-md rounded px-2 pt-2 pb-1 mb-2 flex flex-wrap items-center justify-between">
+              <div className="flex mb-2 w-full md:w-auto md:flex-1">
+                <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
+                  <label
+                    className="block text-gray-700 text-sm font-bold mb-2"
+                    htmlFor="woNumber"
+                  >
+                    WO Number
+                  </label>
+                  <input
+                    className="shadow appearance-none border rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    id="woNumber"
+                    type="text"
+                    label="WO Number"
+                    value={selectedData.WoNumber}
+                    placeholder="WO Number"
+                  />
+                </div>
+                <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
+                  <label
+                    className="block text-gray-700 text-sm font-bold mb-2"
+                    htmlFor="soNumber"
+                  >
+                    SO Number
+                  </label>
+                  <input
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    id="soNumber"
+                    type="text"
+                    label="SO Number"
+                    value={selectedData.SONumber}
+                    placeholder="SO Number"
+                  />
+                </div>
+                <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
+                  <label
+                    className="block text-gray-700 text-sm font-bold mb-2"
+                    htmlFor="reference"
+                  >
+                    Reference
+                  </label>
+                  <input
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    id="reference"
+                    type="text"
+                    label="Reference"
+                    value={selectedData.WoReferenceID}
+                    placeholder="Reference"
+                  />
+                </div>
+                <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
+                  <label
+                    className="block text-gray-700 text-sm font-bold mb-2"
+                    htmlFor="woQty"
+                  >
+                    WO Qty
+                  </label>
+                  <input
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    id="woQty"
+                    type="text"
+                    label="WO QTY"
+                    value={selectedData.WoQTY}
+                    placeholder="WO Qty"
+                  />
+                </div>
+                <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
+                  <label
+                    className="block text-gray-700 text-sm font-bold mb-2"
+                    htmlFor="qtyPass"
+                  >
+                    Qty Pass
+                  </label>
+                  <input
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    id="qtyPass"
+                    type="text"
+                    label="WO QTY"
+                    value={selectedData.WoQTY}
+                    placeholder="Qty Pass"
+                  />
+                </div>
+                <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
+                  <label
+                    className="block text-gray-700 text-sm font-bold mb-2"
+                    htmlFor="qtyFail"
+                  >
+                    Qty Fail
+                  </label>
+                  <input
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    id="qtyFail"
+                    type="text"
+                    label="WO QTY"
+                    value={selectedData.FailQTY}
+                    placeholder="Qty Fail"
+                  />
+                </div>
+              </div>
               <div>
                 <button
-                  className={`mt-2 py-2 px-4 rounded font-semibold ${
+                  // className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-4 md:mt-0 md:ml-2 "
+                  className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-4 md:mt-0 md:ml-2 ${
                     isWoRunning ? "bg-red-500" : "bg-green-500"
                   } text-white w-auto `}
                   onClick={handleRunStop}

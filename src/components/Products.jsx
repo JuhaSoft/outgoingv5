@@ -134,7 +134,7 @@ export default function Products() {
     try {
       const response = await axios.get(`${api}/api/DataTracks/${id}`);
       const trackData = response.data;
-setPsnEdit(response.data.TrackPSN)
+      setPsnEdit(response.data.TrackPSN);
       const detailDataResponse = await axios.get(
         `${api}/api/DataTrackChecks/${id}`
       );
@@ -242,6 +242,10 @@ setPsnEdit(response.data.TrackPSN)
 
   const handleSubmit = async () => {
     // Logika untuk menentukan TrackingResult dan TrackingStatus
+    if (dataTrackCheckings.some((item) => item.Result === "")) {
+      toast.error("Harap pilih hasil untuk setiap parameter");
+      return; // Menghentikan proses submit jika ada nilai kosong
+    }
     const allPassed = dataTrackCheckings.every(
       (item) => item.Result === "Pass" || item.Result === "PASS"
     );
@@ -441,7 +445,7 @@ setPsnEdit(response.data.TrackPSN)
               ? apiData.ParameterChecks.map(() => [])
               : []
           );
-          setEditingData(null)
+          setEditingData(null);
           setShowModal(true);
         } else {
           setErrorProduct(data.Description);
@@ -521,23 +525,114 @@ setPsnEdit(response.data.TrackPSN)
   }, []);
   return (
     <div className="z-0 ">
-       <h2>Product</h2>
+      <h2>Product Check</h2>
       {isLoading && <div className="loading-animation">Loading...</div>}
       {selectedData && (
         <div className="mb-4">
-          <div className="w-full m-2 overflow-hidden rounded-lg shadow-lg bg-gray-100 ">
-            <h2 className="font-bold text-lg mx-2 ">Order Running:</h2>
-            <div className="grid grid-cols-5 gap-4 mb-4">
-              <InputField label="WO Number" value={selectedData.WoNumber} />
-              <InputField label="SO Number" value={selectedData.SONumber} />
-              <InputField
-                label="Reference"
-                value={selectedData.WoReferenceID}
-              />
-              <InputField label="WO QTY" value={selectedData.WoQTY} />
+          <div className="mx-auto">
+            <div className="bg-slate-200 shadow-md rounded px-2 pt-2 pb-1 mb-2 flex flex-wrap items-center justify-between">
+              <div className="flex mb-2 w-full md:w-auto md:flex-1">
+                <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
+                  <label
+                    className="block text-gray-700 text-sm font-bold mb-2"
+                    htmlFor="woNumber"
+                  >
+                    WO Number
+                  </label>
+                  <input
+                    className="shadow appearance-none border rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    id="woNumber"
+                    type="text"
+                    label="WO Number"
+                    value={selectedData.WoNumber}
+                    placeholder="WO Number"
+                  />
+                </div>
+                <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
+                  <label
+                    className="block text-gray-700 text-sm font-bold mb-2"
+                    htmlFor="soNumber"
+                  >
+                    SO Number
+                  </label>
+                  <input
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    id="soNumber"
+                    type="text"
+                    label="SO Number"
+                    value={selectedData.SONumber}
+                    placeholder="SO Number"
+                  />
+                </div>
+                <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
+                  <label
+                    className="block text-gray-700 text-sm font-bold mb-2"
+                    htmlFor="reference"
+                  >
+                    Reference
+                  </label>
+                  <input
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    id="reference"
+                    type="text"
+                    label="Reference"
+                    value={selectedData.WoReferenceID}
+                    placeholder="Reference"
+                  />
+                </div>
+                <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
+                  <label
+                    className="block text-gray-700 text-sm font-bold mb-2"
+                    htmlFor="woQty"
+                  >
+                    WO Qty
+                  </label>
+                  <input
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    id="woQty"
+                    type="text"
+                    label="WO QTY"
+                    value={selectedData.WoQTY}
+                    placeholder="WO Qty"
+                  />
+                </div>
+                <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
+                  <label
+                    className="block text-gray-700 text-sm font-bold mb-2"
+                    htmlFor="qtyPass"
+                  >
+                    Qty Pass
+                  </label>
+                  <input
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    id="qtyPass"
+                    type="text"
+                    label="WO QTY"
+                    value={selectedData.WoQTY}
+                    placeholder="Qty Pass"
+                  />
+                </div>
+                <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
+                  <label
+                    className="block text-gray-700 text-sm font-bold mb-2"
+                    htmlFor="qtyFail"
+                  >
+                    Qty Fail
+                  </label>
+                  <input
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    id="qtyFail"
+                    type="text"
+                    label="WO QTY"
+                    value={selectedData.FailQTY}
+                    placeholder="Qty Fail"
+                  />
+                </div>
+              </div>
               <div>
                 <button
-                  className={`mt-2 py-2 px-4 rounded font-semibold ${
+                  // className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-4 md:mt-0 md:ml-2 "
+                  className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-4 md:mt-0 md:ml-2 ${
                     isWoRunning ? "bg-red-500" : "bg-green-500"
                   } text-white w-auto `}
                   onClick={handleRunStop}
@@ -549,7 +644,11 @@ setPsnEdit(response.data.TrackPSN)
           </div>
         </div>
       )}
-      <div className="w-full mx-1 mb-2 overflow-hidden rounded-lg shadow-lg bg-gray-100">
+      <div
+        className={`w-full mx-1 mb-2 overflow-hidden rounded-lg shadow-lg bg-gray-100 ${
+          isWoRunning ? "" : "hidden"
+        }`}
+      >
         <div className="flex items-center p-2">
           <input
             name="inputPSN"
@@ -588,7 +687,9 @@ setPsnEdit(response.data.TrackPSN)
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75">
           <div className="bg-white p-8 rounded-lg shadow-md overflow-auto max-h-full w-4/5">
             <h2 className="text-lg font-bold mb-4">
-              {editingData ? "Edit Data PSN : " +psnEdit  : "Cek PSN : "+psnBarcode}
+              {editingData
+                ? "Edit Data PSN : " + psnEdit
+                : "Cek PSN : " + psnBarcode}
             </h2>
             {error && <p className="text-red-500">{error}</p>}
             <div className="flex flex-wrap">
@@ -616,6 +717,7 @@ setPsnEdit(response.data.TrackPSN)
                           setDataTrackCheckings(newDataTrackCheckings);
                         }}
                       >
+                        <option value="">Pilih Hasil</option>
                         <option value="Pass">Pass</option>
                         <option value="Fail">Fail</option>
                       </select>
@@ -808,19 +910,23 @@ setPsnEdit(response.data.TrackPSN)
                       {track.TrackingWO}
                     </td>
                     <td className="px-4 py-2 hidden sm:table-cell">
-                      {track.TrackReference}
+                      {track.TrackReference ? track.TrackReference : "N/A"}
                     </td>
                     <td className="px-4 py-2 hidden sm:table-cell">
-                      {track.LastStationID.StationName}
+                      {track.LastStationID.StationName
+                        ? track.LastStationID.StationName
+                        : "N/A"}
                     </td>
                     <td className="px-4 py-2 hidden sm:table-cell">
-                      {track.LastStationID.DataLine.LineName}
+                      {track.LastStationID.DataLine.LineName
+                        ? track.LastStationID.DataLine.LineName
+                        : "N/A"}
                     </td>
                     <td className="px-4 py-2 hidden sm:table-cell">
                       {new Date(track.TrackingDateCreate).toLocaleString()}
                     </td>
                     <td className="px-4 py-2 hidden sm:table-cell">
-                      {track.User.DisplayName}
+                      {track.User ? track.User.DisplayName : "N/A"}
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex">

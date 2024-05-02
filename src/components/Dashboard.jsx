@@ -228,19 +228,19 @@ export default function Dashboard() {
                           {track.TrackingWO}
                         </td>
                         <td className="px-4 py-2 hidden sm:table-cell">
-                          {track.TrackReference}
+                          {track.TrackReference?track.TrackReference:"N/A"}
                         </td>
                         <td className="px-4 py-2 hidden sm:table-cell">
-                          {track.LastStationID.StationName}
+                          {track.LastStationID.StationName?track.LastStationID.StationName:"N/A"}
                         </td>
                         <td className="px-4 py-2 hidden sm:table-cell">
-                          {track.LastStationID.DataLine.LineName}
+                          {track.LastStationID.DataLine.LineName?track.LastStationID.DataLine.LineName:"N/A"}
                         </td>
                         <td className="px-4 py-2 hidden sm:table-cell">
                           {new Date(track.TrackingDateCreate).toLocaleString()}
                         </td>
                         <td className="px-4 py-2 hidden sm:table-cell">
-                          {track.User.DisplayName}
+                          {track.User.DisplayName?track.User.DisplayName:"N/A"}
                         </td>
                         <td className="px-4 py-2">
                           <div className="flex">
