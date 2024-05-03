@@ -1,0 +1,24 @@
+[
+    {
+      "id": 1,
+      "label": "Home",
+      "icon": FiHome
+    },
+    {
+      "id": 2,
+      "label": "Settings",
+      "icon": FiSettings,
+      "subMenus": [
+        {
+          "id": 1,
+          "label": "General",
+          "icon": FiFolder
+        },
+        {
+          "id": 2,
+          "label": "Security",
+          "icon": FiFolder
+        }
+      ]
+    }
+  ]

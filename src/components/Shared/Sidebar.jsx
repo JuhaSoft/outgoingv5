@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { HiOutlineLogout } from "react-icons/hi";
+import { GrUserSettings } from "react-icons/gr";
+import { BsClipboard2Data } from "react-icons/bs";
 import {
   DASHBOARD_SIDEBAR_LINKS,
   DASHBOARD_SIDEBAR_BOTTOM_LINKS,

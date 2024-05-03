@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState,useRef  } from "react";
 import axios from "axios";
 import { FaEye, FaEdit } from "react-icons/fa";
 import ReactPaginate from "react-paginate";
@@ -42,6 +42,8 @@ export default function Products() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentImageModalImages, setCurrentImageModalImages] = useState([]);
   const [detailDataMap, setDetailDataMap] = useState({});
+  const [woData, setsetWoData] = useState({});
+  // const inputPSN = useRef(null);
   const [selectedData, setSelectedData] = useState(
     JSON.parse(localStorage.getItem("selectedOrder"))
   );
@@ -71,6 +73,7 @@ export default function Products() {
     } else {
       localStorage.setItem("woStartRun", "true");
       setIsWoRunning(true);
+      // focusInput
     }
   };
   let token = localStorage.getItem("token");
@@ -168,7 +171,7 @@ export default function Products() {
         Result,
       }));
       setDataTrackCheckings(newDataTrackCheckings);
-
+      fetchDataWoParam(selectedData.Id)
       setEditingData(trackData);
       setShowModal(true);
     } catch (error) {
@@ -198,21 +201,16 @@ export default function Products() {
       toast.error(`Error fetching data: ${error.message}`, {});
     }
   };
-  const InputField = ({ label, value }) => {
-    return (
-      <div className="mx-2 mb-2">
-        <label className="block text-sm font-medium text-gray-700 ">
-          {label}
-        </label>
-        <input
-          type="text"
-          className="m-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-          value={value || ""}
-          readOnly
-        />
-      </div>
-    );
+  const fetchDataWoParam = async (id) => {
+    try {
+      const response =await axios.get(`${api}/api/Wo/${id}`)
+      
+      setSelectedData(response.data);
+    } catch (error) {
+      toast.error(`Error fetching data: ${error.message}`, {});
+    }
   };
+  ;
   const handleKeyPressProduct = (e) => {
     if (e.key === "Enter") {
       handleSearchProduct();
@@ -281,6 +279,7 @@ export default function Products() {
       if (response.status === 200) {
         // Penanganan sukses
         toast.success("Data berhasil dikirim ke server");
+        fetchDataWoParam(selectedData.Id)
         setShowModal(false);
         fetchDataTracks();
         setOpenCollapse({});
@@ -522,7 +521,11 @@ export default function Products() {
   }, [apiData]);
   useEffect(() => {
     fetchDataTracks();
+    fetchDataWoParam(selectedData.Id)
   }, []);
+  // const focusInput = () => {
+  //   inputPSN.current.focus();
+  // };
   return (
     <div className="z-0 ">
       <h2>Product Check</h2>
@@ -546,6 +549,7 @@ export default function Products() {
                     label="WO Number"
                     value={selectedData.WoNumber}
                     placeholder="WO Number"
+                    readOnly
                   />
                 </div>
                 <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
@@ -562,6 +566,7 @@ export default function Products() {
                     label="SO Number"
                     value={selectedData.SONumber}
                     placeholder="SO Number"
+                    readOnly
                   />
                 </div>
                 <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
@@ -578,6 +583,7 @@ export default function Products() {
                     label="Reference"
                     value={selectedData.WoReferenceID}
                     placeholder="Reference"
+                    readOnly
                   />
                 </div>
                 <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
@@ -594,6 +600,7 @@ export default function Products() {
                     label="WO QTY"
                     value={selectedData.WoQTY}
                     placeholder="WO Qty"
+                    readOnly
                   />
                 </div>
                 <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
@@ -608,8 +615,9 @@ export default function Products() {
                     id="qtyPass"
                     type="text"
                     label="WO QTY"
-                    value={selectedData.WoQTY}
+                    value={selectedData.PassQTY}
                     placeholder="Qty Pass"
+                    readOnly
                   />
                 </div>
                 <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
@@ -626,6 +634,7 @@ export default function Products() {
                     label="WO QTY"
                     value={selectedData.FailQTY}
                     placeholder="Qty Fail"
+                    readOnly
                   />
                 </div>
               </div>

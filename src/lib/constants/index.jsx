@@ -7,6 +7,8 @@ import {
 	HiOutlineAnnotation,
 	HiOutlineQuestionMarkCircle
 } from 'react-icons/hi'
+import { GrUserSettings } from "react-icons/gr";
+import { BsClipboard2Data } from "react-icons/bs";
 import { FaRegCircleUser } from "react-icons/fa6";
 import { HiOutlineCog } from "react-icons/hi";
 import { FaCheckDouble } from "react-icons/fa";
@@ -52,7 +54,7 @@ export const DASHBOARD_SIDEBAR_BOTTOM_LINKS = [
 				label: 'Parameter',
 				path: '/Parameters',
 				Access:["Admin","Staf","LI","Teknisi"],
-				icon: <HiOutlineCog />
+				icon: <BsClipboard2Data />
 			  },
 			
 			  {
@@ -60,28 +62,28 @@ export const DASHBOARD_SIDEBAR_BOTTOM_LINKS = [
 				label: 'Reference',
 				path: '/References',
 				Access:["Admin","Staf","LI","Teknisi"],
-				icon: <HiOutlineCog />
+				icon: <BsClipboard2Data />
 			  },
 			  {
 				key: 'LastStations',
 				label: 'Last Station',
 				path: '/LastStations',
 				Access:["Admin","Staf","LI","Teknisi"],
-				icon: <HiOutlineCog />
+				icon: <BsClipboard2Data />
 			  },
 			  {
 				key: 'Lines',
 				label: 'Line',
 				path: '/Lines',
 				Access:["Admin","Staf","LI","Teknisi"],
-				icon: <HiOutlineCog />
+				icon: <BsClipboard2Data />
 			  },
 		  {
 			key: 'Users',
 			label: 'Users',
 			path: '/Users',
 			Access:["Admin","Staf"],
-			icon: <HiOutlineCog />
+			icon: <GrUserSettings />
 		  },
 		  
 		]
