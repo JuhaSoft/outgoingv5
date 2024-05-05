@@ -7,6 +7,7 @@ import ErrorBoundary from "../../ErrorBoundary ";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 const Sidebar = lazy(() => import("../Shared/Sidebar"));
+const SidebarCollapse = lazy(() => import("../Shared/SidebarCollapse"));
 
 // import Sidebar from "../Sidebar/sidebar";
 
@@ -77,7 +78,7 @@ export default function Layout() {
      
      <Suspense fallback={<div>Loading Sidebar...</div>}>
         <ErrorBoundary>
-          <Sidebar />
+          <SidebarCollapse />
         </ErrorBoundary>
         </Suspense>
         <div className="flex flex-col flex-1">

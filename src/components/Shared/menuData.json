@@ -1,24 +1,64 @@
 [
-    {
-      "id": 1,
-      "label": "Home",
-      "icon": FiHome
-    },
-    {
-      "id": 2,
-      "label": "Settings",
-      "icon": FiSettings,
-      "subMenus": [
-        {
-          "id": 1,
-          "label": "General",
-          "icon": FiFolder
-        },
-        {
-          "id": 2,
-          "label": "Security",
-          "icon": FiFolder
-        }
-      ]
-    }
-  ]
+  {
+    "id": 1,
+    "label": "Dashboard",
+    "icon": "FiHome",
+    "path": "/"
+  },
+  {
+    "id": 2,
+    "label": "Data",
+    "icon": "FiHome",
+    "path": "/"
+  },
+  {
+    "id": 3,
+    "label": "Order",
+    "icon": "FiHome",
+    "path": "/orders"
+  },
+  {
+    "id": 4,
+    "label": "Process",
+    "icon": "FiHome",
+    "path": "/products"
+  },
+  {
+    "id": 5,
+    "label": "Stting",
+    "icon": "FiSettings",
+    "subMenus": [
+      {
+        "id": 1,
+        "label": "Parameter",
+        "icon": "BsClipboard2Data",
+        "path": "/Parameters"
+      },
+      {
+        "id": 2,
+        "label": "Reference",
+        "icon": "FiFolder",
+        "path": "/References"
+      },
+      {
+        "id": 3,
+        "label": "Last Station",
+        "icon": "FiFolder",
+        "path": "/LastStations"
+      },
+      {
+        "id": 4,
+        "label": "Line",
+        "icon": "FiFolder",
+        "path": "/Lines"
+      },
+      {
+        "id": 5,
+        "label": "Users",
+        "icon": "GrUserSettings",
+        "path": "/Users"
+      }
+    ]
+  }
+  
+]

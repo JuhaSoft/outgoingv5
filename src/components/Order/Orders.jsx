@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Select from "react-select";
-// import globalConfig from '../../config'
+import { useNavigate } from 'react-router-dom';
+
 import axios from "axios";
 import ReactPaginate from "react-paginate";
 import { format } from "date-fns";
@@ -32,6 +33,7 @@ export default function Orders() {
   const [isWoRunning, setIsWoRunning] = useState(
     localStorage.getItem("woStartRun") === "true"
   );
+  const navigate = useNavigate();
   const [selectedOption, setSelectedOption] = useState({
     text: "All Categories",
     value: "All",
@@ -58,6 +60,7 @@ export default function Orders() {
       // Jika tidak berjalan, set local storage menjadi true dan jalankan
       localStorage.setItem("woStartRun", "true");
       setIsWoRunning(true);
+      navigate('/Products')
     }
   };
   const [searchQuery, setSearchQuery] = useState("");

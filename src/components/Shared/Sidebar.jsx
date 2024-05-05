@@ -21,12 +21,13 @@ export default function Sidebar() {
   };
   const api = appConfig.APIHOST;
   const navigate = useNavigate();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [openSubMenu, setOpenSubMenu] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const userDisplayName = localStorage.getItem("DisplayName");
   const userAvatar = `${api}${localStorage.getItem("Image")}`; // Get user avatar
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  
   const userRole = localStorage.getItem("Role");
 
   useEffect(() => {
