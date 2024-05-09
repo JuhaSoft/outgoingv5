@@ -19,6 +19,7 @@ import LoadingPage from './components/Shared/LoadingPage'
 import Users from './components/Users/Users'
 import EditProfileForm from './components/Users/EditProfileForm'
 import ChangePassword from './components/Users/ChangePassword'
+import Errors from './components/Errors'
 // import CollapsibleTable from './components/CollapsibleTable'
 
 const App = () => {
@@ -31,6 +32,7 @@ const App = () => {
         <Route path='products' element={<Products />} />
         <Route path='orders' element={<Orders />} />
         <Route path='Lines' element={<Lines />} />
+        <Route path='Errors' element={<Errors />} />
         <Route path='References' element={<References />} />
         <Route path='Parameters' element={<Parameters />} />
         <Route path='LastStations' element={<LastStations />} />

@@ -6,12 +6,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { MdOutlinePassword } from "react-icons/md";
 import { HiOutlineViewGrid, HiOutlineCube, HiOutlineShoppingCart, HiOutlineUsers, HiOutlineDocumentText, HiOutlineAnnotation, HiOutlineQuestionMarkCircle } from "react-icons/hi";
 import { GrUserSettings } from "react-icons/gr";
+import { FaGripLines } from "react-icons/fa";
 import { FaRegCircleUser } from "react-icons/fa6";
 import { HiOutlineCog } from "react-icons/hi";
 import { FaCheckDouble } from "react-icons/fa";
 import { BsClipboard2Data } from "react-icons/bs";
 import useSidebarStore from "../SidebarStore.js";
-
+import { MdTableRestaurant } from "react-icons/md";
+import { BiSolidMessageAltX } from "react-icons/bi";
 // Import HiOutlineLogout icon
 import { HiOutlineLogout } from "react-icons/hi";
 
@@ -34,6 +36,9 @@ const iconMap = {
   HiOutlineCog: HiOutlineCog,
   FaCheckDouble: FaCheckDouble,
   BsClipboard2Data: BsClipboard2Data,
+  FaGripLines:FaGripLines,
+  MdTableRestaurant:MdTableRestaurant,
+  BiSolidMessageAltX:BiSolidMessageAltX,
 };
 
 const SidebarCollapse = () => {
@@ -42,6 +47,7 @@ const SidebarCollapse = () => {
   };
   const api = appConfig.APIHOST;
   const navigate = useNavigate();
+  const { externalActiveMenu } = useSidebarStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [activeMenu, setActiveMenu] = useState(null);
   const [activeSubMenu, setActiveSubMenu] = useState(null);
@@ -54,7 +60,16 @@ const SidebarCollapse = () => {
 
   // State untuk mengelola visibilitas floating menu
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-
+  useEffect(() => {
+    if (externalActiveMenu !== null) {
+      const matchedMenu = menuData.find((menu) => menu.label === externalActiveMenu);
+      if (matchedMenu) {
+        setActiveMenu(matchedMenu.id);
+      }
+      // Jika ingin mereset externalActiveMenu setelah digunakan
+      useSidebarStore.getState().setExternalActiveMenu(null);
+    }
+  }, [externalActiveMenu]);
   useEffect(() => {
     const token = localStorage.getItem("token");
     setIsOpen(zustandIsOpen);
@@ -105,7 +120,6 @@ const SidebarCollapse = () => {
       if (timeToLogout > 0) {
         setTimeout(handleLogout, timeToLogout * 1000);
       } else {
-        console.log("AutoLogut");
         handleLogout();
       }
     }

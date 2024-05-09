@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from "react";
 import Select from "react-select";
 import { useNavigate } from 'react-router-dom';
-
+import { useLocation } from 'react-router-dom';
 import axios from "axios";
 import ReactPaginate from "react-paginate";
 import { format } from "date-fns";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import useSidebarStore from "../SidebarStore";
 export default function Orders() {
+  
   const appConfig = window.globalConfig || {
     siteName: process.env.REACT_APP_SITENAME,
   };
@@ -24,6 +26,7 @@ export default function Orders() {
   const [pageSize, SetPageSize] = useState(10);
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [comboNames, setComboNames] = useState([]);
+  const { setActiveMenu,setExternalActiveMenu } = useSidebarStore();
   const [selectedData, setSelectedData] = useState(
     JSON.parse(localStorage.getItem("selectedOrder"))
   );
@@ -38,7 +41,7 @@ export default function Orders() {
     text: "All Categories",
     value: "All",
   }); // State untuk menyimpan opsi yang dipilih
-
+  const location = useLocation();
   const dropdownOptions = [
     { text: "All Categories", value: "All" },
     { text: "Work Order", value: "WoNumber" },
@@ -60,6 +63,7 @@ export default function Orders() {
       // Jika tidak berjalan, set local storage menjadi true dan jalankan
       localStorage.setItem("woStartRun", "true");
       setIsWoRunning(true);
+      setExternalActiveMenu('Process')// sesuaikan dengan label in menuData
       navigate('/Products')
     }
   };

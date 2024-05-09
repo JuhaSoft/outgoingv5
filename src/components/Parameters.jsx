@@ -4,31 +4,24 @@ import axios from "axios";
 import ReactPaginate from "react-paginate";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Modal from "./Shared/Modal";
-import { FaRegTrashAlt } from "react-icons/fa";
-import Box from "@mui/material/Box";
-import Collapse from "@mui/material/Collapse";
-import IconButton from "@mui/material/IconButton";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import Typography from "@mui/material/Typography";
-import Paper from "@mui/material/Paper";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import EditIcon from "@mui/icons-material/Edit";
+import Webcam from "react-webcam";
+import { FaCamera } from "react-icons/fa";
+import { GrGallery } from "react-icons/gr";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { FaArrowUp, FaArrowDown } from "react-icons/fa";
-import { MdKeyboardArrowDown,MdKeyboardArrowUp } from "react-icons/md";
+import { MdKeyboardArrowDown, MdKeyboardArrowUp } from "react-icons/md";
+import { FaEye, FaEdit } from "react-icons/fa";
+import { format } from "date-fns";
+
 export default function Parameters() {
   const appConfig = window.globalConfig || {
     siteName: process.env.REACT_APP_SITENAME,
   };
   const api = appConfig.APIHOST;
   const [openDlg, setOpenDlg] = useState(false);
+  const [totalRecord, setTotalRecord] = useState(0);
+  const [pageCount, setpageCount] = useState(0);
+
   const [error, setError] = useState("");
   const [idDelete, setidDelete] = useState("");
   const [StationIDDelete, setStationIDDelete] = useState("");
@@ -42,11 +35,24 @@ export default function Parameters() {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [comboNames, setComboNames] = useState([]);
   const [selectedReference, setSelectedReference] = useState(null);
+  const [capturedImage, setCapturedImage] = useState(null);
+  const webcamRef = React.useRef(null);
+  const [showWebcam, setShowWebcam] = useState(false);
+  let token = localStorage.getItem("token");
+  const [currentImageModalImages, setCurrentImageModalImages] = useState([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [enlargedImage, setEnlargedImage] = useState(null);
+  const [showEnlargedModal, setShowEnlargedModal] = useState(false);
+  const [openCollapse, setOpenCollapse] = useState({});
+  const [detailDataMap, setDetailDataMap] = useState({});
   const [selectedOption, setSelectedOption] = useState({
     text: "All Categories",
     value: "All",
   }); // State untuk menyimpan opsi yang dipilih
-
+  const toggleWebcam = () => {
+    setShowWebcam(!showWebcam);
+  };
   const dropdownOptions = [
     { text: "All Categories", value: "All" },
     { text: "Reference name", value: "RefereceName" },
@@ -56,49 +62,46 @@ export default function Parameters() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [editData, setEditData] = useState(null);
-
+  const [errorMessages, setErrorMessages] = useState([]);
   const [formData, setFormData] = useState({
-    DataReferenceId: "",
-    RefereceName: "",
+    Description: "",
+    ErrorCode: [],
   });
 
   const openModal = () => {
     setShowModal(true);
+    setShowWebcam(null);
+    setCapturedImage(null);
     // Reset nilai state yang terkait dengan data di modal ke nilai awal
     setFormData({
-      DataReferenceId: "",
-      RefereceName: "",
-      ParameterChecks: [],
+      Description: "",
+      ErrorCode: [],
     });
     setValIn([]);
     setSelectedReference(null); // Reset juga selected reference jika diperlukan
   };
-
-  const handleEdit = async (dataItem) => {
-    setEditData(dataItem);
+  const resetFoto = () => {
     setShowModal(true);
+    setShowWebcam(null);
+    setCapturedImage(null);
+  };
+  const fetchErrorMessages = async () => {
     try {
-      const allParameterChecks = dataItem.ParameterChecks.map((check) => ({
-        ...check,
-        // Jika Anda ingin tetap menyertakan Id, Anda bisa tambahkan baris berikut
-        // Id: check.Id,
+      const response = await axios.get(`${api}/api/ErrorMessage`);
+      const formattedData = response.data.Items.$values.map((item) => ({
+        value: item.Id,
+        label: `${item.ErrorCode} -> ${item.ErrorDescription}`,
       }));
-      setFormData({
-        ...formData,
-        RefereceName: dataItem.RefereceName,
-        DataReferenceId: dataItem.Id,
-        ParameterChecks: allParameterChecks,
-      });
-      setSelectedReference({
-        value: dataItem.Id,
-        label: dataItem.RefereceName,
-      });
-      setValIn(allParameterChecks);
+      setErrorMessages(formattedData);
     } catch (error) {
-      toast.error(error.response.dataItem);
+      toast.error("Error fetching error messages:" + error);
     }
   };
-
+  const handleImageClick = (images, index) => {
+    setCurrentImageModalImages(images);
+    setCurrentImageIndex(index);
+    setShowImageModal(true);
+  };
   const handleUpdate = async () => {
     try {
       const newFormData = {
@@ -140,48 +143,41 @@ export default function Parameters() {
       }
     }
   };
-
-  const handleDelete = async (Id) => {
+  const fetchDetailData = async (id) => {
     try {
-      await axios.delete(`${api}/api/ParamChecks/${Id}`);
-      // Tampilkan notifikasi sukses
-      toast.success("Data berhasil dihapus");
-      // Muat ulang data setelah penghapusan
-      setSaveData(true);
-    } catch (error) {
-      // Tangani kesalahan
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
+      const response = await axios.get(`${api}/api/Paramchecks/${id}`);
 
-        if (error.response.status === 401) {
-          // Unauthorized, handle accordingly (e.g., redirect to login page)
-          toast.error("Unauthorized request");
-        }
-      } else if (error.request) {
-        // The request was made but no response was received
-        toast.error("Request made but no response received:", error.request);
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        toast.error("Error during request setup:", error.message);
-      }
+      setDetailDataMap((prevMap) => ({
+        ...prevMap,
+        [id]: response.data.ParameterCheckErrorMessages.$values,
+      }));
+    } catch (error) {
+      toast.error("Error fetching detail data:", error);
     }
-    setOpenDlg(false);
   };
-  const confirmDelete = (Gid, id) => {
-    setidDelete(Gid);
-    setStationIDDelete(id);
-    setOpenDlg(true);
-    // if (window.confirm("Apakah Anda yakin ingin menghapus data ini?")) {
-    //   handleDelete(Gid); // Jika pengguna menekan OK, panggil fungsi handleDelete
-    // }
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      setCapturedImage(reader.result);
+    };
+
+    if (file) {
+      reader.readAsDataURL(file);
+    }
   };
+  const capture = React.useCallback(() => {
+    const imageSrc = webcamRef.current.getScreenshot();
+    setCapturedImage(imageSrc);
+    setShowWebcam(null);
+  }, [webcamRef]);
   const closeModal = () => {
     setShowModal(false);
     // Reset nilai input ke nilai awal
     setFormData({
-      DataReferenceId: "",
-      RefereceName: "",
+      Description: "",
+      ErrorCode: [],
     });
     setEditData(null);
   };
@@ -193,25 +189,34 @@ export default function Parameters() {
   };
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const newFormData = {
+      ...formData,
+      ErrorCode: dynamicInputsData,
+      ImageSampleUrl: capturedImage, // Menambahkan capturedImage ke formData
+    };
+    setFormData(newFormData);
     if (editData) {
       handleUpdate();
     } else {
       try {
-        const newFormData = {
-          ...formData,
-          ParameterChecks: dynamicInputsData,
-        };
-        setFormData(newFormData);
         const response = await axios.post(
           `${api}/api/ParamChecks`,
-          newFormData
+          newFormData,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
 
         toast.success("Data berhasil disimpan");
         setFormData({
-          DataReferenceId: "",
-          RefereceName: "",
+          Description: "",
+          ErrorCode: [],
+          CapturedImage: null, // Reset capturedImage setelah berhasil dikirim
         });
+        setCapturedImage(null); // Reset capturedImage setelah berhasil dikirim
         closeModal();
         setSaveData(true);
       } catch (error) {
@@ -219,7 +224,6 @@ export default function Parameters() {
       }
     }
   };
-
   useEffect(() => {
     if (!error && !showModal) {
       setError("");
@@ -235,7 +239,9 @@ export default function Parameters() {
     fetchData("Change", currentPage, pageSize);
   }, [pageSize, currentPage, saveData, showModal, openDlg]);
 
-
+  useEffect(() => {
+    fetchErrorMessages();
+  }, []);
   const handleMoveUp = (index) => {
     if (index === 0) return; // Tidak dapat memindahkan elemen pertama ke atas
 
@@ -266,39 +272,22 @@ export default function Parameters() {
     setValIn(updatedValIn);
   };
 
-  const handleSearch = (event) => {
-    event.preventDefault();
+  const fetchData = async (dari = "sana", pageNumber = 1, pageSize = 10) => {
+    try {
+      const response = await axios.get(
+        `${api}/api/ParamChecks?pageNumber=${pageNumber}&pageSize=${pageSize}&SearchQuery=${searchQuery}&Category=${selectedOption.value}`
+      );
 
-    fetchData("handleSearch");
-  };
-  useEffect(() => {
-    const fetchComboNames = async () => {
-      try {
-        const response = await axios.get(`${api}/api/DataReference`);
-        const formattedData = response.data.Items.$values.map((item) => ({
-          value: item.Id,
-          label: item.RefereceName,
-        }));
-        setComboNames(formattedData);
-      } catch (error) {
-        toast.error("Error fetching Station names:" + error);
-      }
-    };
-
-    fetchComboNames();
-  }, []);
-  const handleStationSelect = (selectedOption) => {
-    setSelectedReference(selectedOption);
-
-    if (selectedOption) {
-      setFormData({
-        ...formData,
-        DataReferenceId: selectedOption.value,
-        RefereceName: selectedOption.RefereceName,
-      });
+      setdataProduct(response.data.Items.$values);
+      setTotalItems(response.data.TotalItems);
+      setTotalRecord(response.data.TotalItems);
+      SetTotalPages(response.data.TotalPages || 1);
+      setpageCount(response.data.TotalPages);
+    } catch (error) {
+      toast.error(`Error fetching data:${dari} -  ${error.message}`, {});
     }
-    // Lakukan apa pun yang perlu Anda lakukan dengan stasiun yang dipilih di sini
   };
+
   const handleDropdownToggle = () => {
     setDropdownVisible(!dropdownVisible); // Toggle state ketika tombol dropdown diklik
   };
@@ -306,125 +295,18 @@ export default function Parameters() {
     setSelectedOption(option);
     setDropdownVisible(false); // Menutup dropdown setelah opsi dipilih
   };
-  const transformData = (data) => {
-    const transformedItems = data.Items.$values.reduce((result, item) => {
-      const { DataReferenceId, DataReference, ...parameterCheck } = item;
-      const existingItem = result.find((i) => i.Id === DataReferenceId);
-
-      if (existingItem) {
-        existingItem.ParameterChecks.push(parameterCheck);
-      } else {
-        result.push({
-          ...DataReference,
-          ParameterChecks: [parameterCheck],
-        });
-      }
-
-      return result;
-    }, []);
-
-    return {
-      Items: transformedItems,
-      TotalItems: transformedItems.length,
-      TotalPages: data.TotalPages,
-      CurrentPage: data.CurrentPage,
-      PageSize: data.PageSize,
-    };
+  const handleSearch = (event) => {
+    event.preventDefault();
+    fetchData(); // Panggil fungsi fetchData dengan parameter default
   };
-
-  const fetchData = async (dari = "sana", pageNumber = 1, pageSize = 10) => {
-    try {
-      const response = await axios.get(
-        `${api}/api/ParamChecks?pageNumber=${pageNumber}&pageSize=${pageSize}&SearchQuery=${searchQuery}&Category=${selectedOption.value}`
-      );
-
-      const transformedData = transformData(response.data);
-      setdataProduct(transformedData.Items);
-      setTotalItems(transformedData.TotalItems);
-      SetTotalPages(transformedData.TotalPages || 1);
-    } catch (error) {
-      toast.error(`Error fetching data:${dari} -  ${error.message}`, {});
-    }
-  };
-  function Row({ dataItem, index, handleEdit, confirmDelete }) {
-    const [open, setOpen] = React.useState(false);
-
-    return (
-      <>
-        <TableRow
-          sx={{
-            "& > *": {
-              borderBottom: "unset",
-            },
-            backgroundColor: index % 2 === 0 ? "white" : "lightgrey",
-          }}
-          style={{ height: "20px" }}
-        >
-          <TableCell className="w-1">
-            <IconButton
-              aria-label="expand row"
-              size="small"
-              onClick={() => setOpen(!open)}
-              sx={{ p: 1 }}
-            >
-              {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-            </IconButton>
-          </TableCell>
-          <TableCell component="th" scope="row">
-            {dataItem.RefereceName}
-          </TableCell>
-          <TableCell align="right">
-            <IconButton
-              aria-label="edit"
-              sx={{ color: "blue" }}
-              onClick={(event) => handleEdit(dataItem, event)} // Passing dataItem to handleEdit
-            >
-              <EditIcon />
-            </IconButton>
-            <IconButton
-              aria-label="delete"
-              sx={{ color: "red" }}
-              onClick={() => confirmDelete(dataItem.Id, dataItem.RefereceName)}
-            >
-              <DeleteIcon />
-            </IconButton>
-          </TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
-            <Collapse in={open} timeout="auto" unmountOnExit>
-              <Box sx={{ margin: 1 }}>
-                <Typography variant="h6" gutterBottom component="div">
-                  Parameter Checks
-                </Typography>
-                <Table size="small" aria-label="parameter-checks">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Description</TableCell>
-                      <TableCell>Order</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {dataItem.ParameterChecks.map((check) => (
-                      <TableRow key={check.Id}>
-                        <TableCell>{check.Description}</TableCell>
-                        <TableCell>{check.Order}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Box>
-            </Collapse>
-          </TableCell>
-        </TableRow>
-      </>
-    );
-  }
-
   const [valIn, setValIn] = useState([]);
   const handleAddIn = () => {
-    const abc = [...valIn, []];
-    setValIn(abc);
+    if (valIn.length < errorMessages.length) {
+      const abc = [...valIn, []];
+      setValIn(abc);
+    } else {
+      toast.error("Maximum number of error code reached.");
+    }
   };
 
   const handleChangeIn = (onChangeValue, i) => {
@@ -448,27 +330,99 @@ export default function Parameters() {
     deletVal.splice(i, 1);
     setValIn(deletVal);
   };
+  const handleChange = (event) => {
+    const { id, value } = event.target;
 
+    setFormData({
+      ...formData,
+      [event.target.name]: event.target.value,
+    });
+  };
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      const inputs = e.target.form.elements;
+      const index = Array.prototype.indexOf.call(inputs, e.target);
+      if (inputs[index + 1]) {
+        inputs[index + 1].focus();
+      }
+      e.preventDefault();
+    }
+  };
   const dynamicInputsData = valIn.map((value, index) => ({
     ...value, // Menyalin properti dari objek value
     Order: index + 1, // Menambahkan nomor urutan
   }));
-  return (
-    <div className="z-0 sm:w-full lg:w-3/4">
-      <div className="fixed top-0 mb-2 z-30 mt-11 sm:mt-24 md:mt-11 lg:mt-11 xl:mt-11">
-        <button
-          onClick={openModal}
-          className="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
-        >
-          ADD Parameter
-        </button>
-      </div>
+  const handleDetailClick = (id, psn) => {
+    setOpenCollapse((prevOpenCollapse) => ({
+      ...prevOpenCollapse,
+      [id]: !prevOpenCollapse[id],
+    }));
 
+    fetchDetailData(id);
+  };
+  const handleEditClick = async (id) => {
+    try {
+      const response = await axios.get(`${api}/api/ParamChecks/${id}`);
+      const editData = response.data;
+
+      setEditData(editData);
+      setCapturedImage(`${api}${editData.ImageSampleUrl}`);
+      setFormData({
+        Description: editData.Description,
+        ErrorCode: editData.ErrorCode,
+        ImageSampleUrl: `${api}${editData.ImageSampleUrl}`,
+      });
+      setValIn(
+        editData.ParameterCheckErrorMessages.$values.map((code, index) => {
+          return {
+            value: code.ErrorMessage.Id,
+            label: `${code.ErrorMessage.ErrorCode} -> ${code.ErrorMessage.ErrorDescription}`,
+            order: index + 1,
+          };
+        })
+      );
+
+      setShowModal(true);
+    } catch (error) {
+      toast.error("Error fetching data:", error);
+    }
+  };
+  return (
+    <div className="z-0 sm:w-full w-auto lg:w-full">
+      {showEnlargedModal && (
+        <div className="fixed inset-0 flex items-center justify-center  z-1000 bg-gray-800 bg-opacity-75">
+          <div className="relative">
+            <img
+              src={enlargedImage}
+              alt="Enlarged"
+              className="max-w-full max-h-screen"
+            />
+            <button
+              className="absolute top-0 right-0 m-4 text-white hover:text-gray-300 bg-red-700 rounded-full"
+              onClick={() => setShowEnlargedModal(false)}
+            >
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
       <form
-        className="max-w-lg mx-auto md:flex md:items-center md:flex-row-reverse items-center "
+        className="max-w-lg mx-auto md:flex md:items-center md:flex-row-reverse "
         onSubmit={handleSearch}
       >
-        <div className="relative flex-grow  sm:w-3/4 md:w-auto ">
+        <div className="relative flex-grow  sm:w-3/4 md:w-auto">
           <label htmlFor="search-dropdown" className="sr-only">
             Search
           </label>
@@ -476,13 +430,13 @@ export default function Parameters() {
             type="search"
             id="search-dropdown"
             className=" block w-full p-2.5 text-sm text-gray-900 bg-gray-50 rounded-l-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:border-blue-500"
-            placeholder="Search Reference Station Id, Station Name ..."
+            placeholder="Search PSN, WO, Ref ..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           <button
             type="submit"
-            className="absolute top-0 right-0 p-2.5 text-sm font-medium h-full text-white bg-green-600 rounded-r-lg border border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 "
+            className="absolute top-0 right-0 p-2.5 text-sm font-medium h-full text-white bg-blue-700 rounded-r-lg border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 "
           >
             <svg
               className="w-4 h-4"
@@ -536,7 +490,7 @@ export default function Parameters() {
               } bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700`}
             >
               <ul
-                className="py-2 text-sm text-gray-700 dark:text-gray-200 z-21 text-right"
+                className="py-2 text-sm text-gray-700 dark:text-gray-200 z-21"
                 aria-labelledby="dropdown-button"
               >
                 {dropdownOptions.map((option) => (
@@ -555,46 +509,105 @@ export default function Parameters() {
           </div>
         </div>
       </form>
+      <div className="fixed top-0 mb-2 z-30 mt-11 sm:mt-24 md:mt-11 lg:mt-11 xl:mt-11">
+        <button
+          onClick={openModal}
+          className="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+        >
+          ADD Parameter
+        </button>
+      </div>
 
       <div className="overflow-x-auto   shadow-md sm:rounded-lg mt-6">
         <section className="container mx-auto p-2 font-mono hidden sm:table w-full">
-          <div className="w-full mb-2 overflow-hidden rounded-lg shadow-lg">
+          <div className="w-3/4 mb-2 overflow-hidden rounded-lg shadow-lg">
             <div className="w-full overflow-x-auto">
-              <TableContainer component={Paper}>
-                <Table aria-label="collapsible table">
-                  <TableHead className="bg-green-600 text-white">
-                    <TableRow>
-                      <TableCell />
-                      <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                        Reference Name
-                      </TableCell>{" "}
-                      {/* Gaya teks diubah menjadi putih dan tebal */}
-                      <TableCell
-                        align="right"
-                        sx={{ color: "white", fontWeight: "bold" }}
-                      >
-                        Actions
-                      </TableCell>{" "}
-                      {/* Gaya teks diubah menjadi putih dan tebal */}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {dataProduct.map((item, index) => (
-                      <Row
-                        key={item.Id}
-                        dataItem={item}
-                        index={index}
-                        handleEdit={handleEdit}
-                        confirmDelete={confirmDelete}
-                      />
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <table className="w-full table-auto  rounded-lg">
+                <thead className="bg-green-500 text-white rounded-tl-2xl">
+                  <tr>
+                    <th className="px-4 py-2 w-1/3">Description</th>
+                    <th className="px-4 py-2 w-1/3">Image</th>
+                    <th className="px-4 py-2 w-1/3">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dataProduct.map((track) => (
+                    <React.Fragment key={track.Id}>
+                      <tr className={`border-b  rounded-full `}>
+                        <td className="px-4 py-2  sm:table-cell  ">
+                          {track.Description}
+                        </td>
+                        <td className="px-4 py-2  sm:table-cell  ">
+                          {track.ImageSampleUrl && (
+                            <img
+                              src={`${api}${track.ImageSampleUrl}`}
+                              alt="Sample Image"
+                              className="w-32 h-16"
+                              onClick={() => {
+                                setEnlargedImage(
+                                  `${api}${track.ImageSampleUrl}`
+                                );
+                                setShowEnlargedModal(true);
+                              }}
+                            />
+                          )}
+                        </td>
+                        <td className="px-4 py-2  ">
+                          <div className="flex">
+                            <button
+                              className="mr-2 hover:text-blue-500"
+                              onClick={() =>
+                                handleDetailClick(track.Id, track.TrackPSN)
+                              }
+                            >
+                              <FaEye size={20} title="Detail" />
+                            </button>
+                            <button
+                              className="hover:text-green-500"
+                              onClick={() => handleEditClick(track.Id)}
+                            >
+                              <FaEdit size={20} title="Edit" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {openCollapse[track.Id] && detailDataMap[track.Id] && (
+                        <tr>
+                          <td colSpan="9" className="px-1 py-2">
+                            <div className="">
+                              <h2 className="text-xl font-bold">
+                                Detail Data for Track ID: {track.Description}
+                              </h2>
+                              <table className="w-full ">
+                                <tbody className="bg-slate-100">
+                                  {detailDataMap[track.Id].map(
+                                    (detail, index) => (
+                                      <tr
+                                        key={index}
+                                        className={`border-b    rounded-full `}
+                                      >
+                                        <td className="w-auto">
+                                          {detail.ErrorMessage.ErrorCode}
+                                        </td>
+                                        <td className="w-auto">
+                                          {detail.ErrorMessage.ErrorDescription}
+                                        </td>
+                                      </tr>
+                                    )
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
-
         <section className="container mx-auto p-2 font-mono sm:hidden">
           <div className="w-full mb-2 overflow-hidden rounded-lg shadow-lg">
             <div className="w-full overflow-x-auto ">
@@ -606,41 +619,25 @@ export default function Parameters() {
                   } border-5`}
                 >
                   <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
-                    <strong>Reference </strong>
-                    <span>
-                      {" "}
-                      : {data.RefereceName ? data.RefereceName : "-"}
-                    </span>
+                    <strong>Description </strong>
+                    <span> : {data.Description ? data.Description : "-"}</span>
                   </div>
                   <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
-                    <strong>Station Id </strong>
+                    <strong>Image </strong>
                     <span>
                       {" "}
-                      :{" "}
-                      {data.ParameterChecks.Description
-                        ? data.ParameterChecks.Description
-                        : "-"}
+                      : {data.ImageSampleUrl ? data.ImageSampleUrl : "-"}
                     </span>
                   </div>
 
-                  <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
-                    <span>
-                      {" "}
-                      <button
-                        className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
-                        onClick={() => handleEdit(data)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-red-300"
-                        onClick={() => confirmDelete(data.Id, data.StationID)}
-                      >
-                        Delete
-                      </button>
-                    </span>
+                  <div className="flex justify-normal w-full sm:w-auto sm:flex-1 mt-3">
+                    <button
+                      type="button"
+                      className="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
+                    >
+                      Detail
+                    </button>
                   </div>
-
                   {/* Tempat untuk tombol aksi jika diperlukan */}
                 </div>
               ))}
@@ -648,6 +645,7 @@ export default function Parameters() {
           </div>
         </section>
       </div>
+
       <div className=" mt-1 w-full">
         <div className="flex flex-col md:flex-row justify-start md:justify-between">
           <div className="w-full mt-2">
@@ -662,9 +660,8 @@ export default function Parameters() {
                 <option>30</option>
                 <option>50</option>
                 <option>100</option>
-                <option>{totalItems}</option>
               </select>
-              <div>From {totalItems} Record</div>
+              <div>From {totalRecord} Record</div>
             </div>
           </div>
           <div className="flex align-middle  md:justify-end ">
@@ -672,7 +669,7 @@ export default function Parameters() {
               previousLabel={"previous"}
               nextLabel={"next"}
               breakLabel={"..."}
-              pageCount={totalPages}
+              pageCount={pageCount}
               marginPagesDisplayed={2}
               pageRangeDisplayed={3}
               onPageChange={handlePageClick}
@@ -698,9 +695,11 @@ export default function Parameters() {
           </div>
         </div>
       </div>
+
+      {/* modal form */}
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75 ">
-          <div className="bg-white p-8 rounded-lg shadow-md w-96 overflow-auto max-h-[80vh]">
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75 overflow-auto">
+          <div className="bg-white p-8 rounded-lg shadow-md w-1/2 overflow-auto max-h-1/2">
             <h2 className="text-lg font-bold mb-4">
               {editData ? "Edit Parameter" : "Add Parameter"}
             </h2>
@@ -710,64 +709,148 @@ export default function Parameters() {
                 htmlFor="input1"
                 className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
               >
-                Reference Name
+                Description
               </label>
-              <Select
-                className="mb-3"
-                options={comboNames}
-                value={selectedReference}
-                onChange={handleStationSelect}
+              <input
+                type="text"
+                name="Description"
+                value={formData.Description}
+                onChange={handleChange} // ubah onchange menjadi onChange
+                onKeyDown={handleKeyDown} // ubah onkeydown menjadi onKeyDown
+                placeholder="Parameter check"
+                className="mb-2 p-2 border rounded"
+                style={{ width: "100%" }} // Menetapkan lebar 100%
+                tabIndex={0}
               />
-              {selectedReference && (
-                <div className="mb-7">
-                  {valIn.map((data, i) => (
-                    <div className="mb-4 flex items-center" key={i}>
-                      <input
-                        value={data.Description}
-                        onChange={(e) => handleChangeIn(e, i)}
-                        className="border rounded py-2 px-3 mr-2 w-3/4"
-                      />
-                      <div className="flex flex-col">
-                        <button
-                          type="button"
-                          onClick={() => handleMoveUp(i)}
-                          disabled={i === 0} // Nonaktifkan tombol Up jika dynamic input pertama
-                          className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2 ${
-                            i === 0 ? "opacity-50 cursor-not-allowed" : ""
-                          }w-auto`}
-                        >
-                          <MdKeyboardArrowUp />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleMoveDown(i)}
-                          disabled={i === valIn.length - 1} // Nonaktifkan tombol Down jika dynamic input terakhir
-                          className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2 ${
-                            i === valIn.length - 1
-                              ? "opacity-50 cursor-not-allowed"
-                              : ""
-                          } w-auto`}
-                        >
-                          <MdKeyboardArrowDown />
-                        </button>
-                      </div>
+
+              <label
+                htmlFor="input1"
+                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              >
+                Image Pattern
+              </label>
+              <div className="mb-4">
+                <Webcam
+                  audio={false}
+                  ref={webcamRef}
+                  screenshotFormat="image/jpeg"
+                  videoConstraints={{
+                    facingMode: "user",
+                  }}
+                  className={`absolute inset-0 ${
+                    showWebcam ? "block" : "hidden"
+                  }`}
+                />
+                <button
+                  onClick={toggleWebcam}
+                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2 mr-2 z-52"
+                >
+                  {/* {showWebcam ? "Hide Webcam" : "Show Webcam"} */}
+                  <FaCamera />
+                </button>
+
+                 
+              </div>
+
+              {/* Input file untuk mengambil gambar dari local folder */}
+              <div className="mb-4 flex gap-3 items-center ">
+                <label
+                  htmlFor="fileUpload"
+                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded cursor-pointer"
+                >
+                  <GrGallery className="inline-block mr-2" />
+                </label>
+                <input
+                  type="file"
+                  id="fileUpload"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <button
+                  onClick={resetFoto}
+                  className="bg-red-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2 mr-2 z-52"
+                >
+                  Hapus foto
+                </button>
+              </div>
+
+              {/* Menampilkan gambar yang diambil */}
+              {capturedImage && (
+                <div className="mb-4">
+                  <img
+                    src={capturedImage}
+                    alt="Captured"
+                    className="max-w-full h-auto max-h-48"
+                    onClick={() => {
+                      setEnlargedImage(capturedImage);
+                      setShowEnlargedModal(true);
+                    }}
+                  />
+                </div>
+              )}
+              <div className="mb-7">
+                {valIn.map((data, i) => (
+                  <div className="mb-4 flex items-center" key={i}>
+                    <Select
+                      value={data}
+                      options={errorMessages}
+                      onChange={(selectedOption) => {
+                        const updatedValIn = [...valIn];
+                        updatedValIn[i] = selectedOption;
+                        setValIn(updatedValIn);
+                      }}
+                      className="border rounded py-2 px-3 mr-2 w-3/4"
+                    />
+                    <div className="flex flex-col">
                       <button
                         type="button"
-                        onClick={() => handleDeleteIn(i)}
-                        className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded ml-2"
+                        onClick={() => handleMoveUp(i)}
+                        disabled={i === 0}
+                        className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2 ${
+                          i === 0 ? "opacity-50 cursor-not-allowed" : ""
+                        } w-auto`}
                       >
-                        <DeleteIcon />
+                        <MdKeyboardArrowUp />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveDown(i)}
+                        disabled={i === valIn.length - 1}
+                        className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2 ${
+                          i === valIn.length - 1
+                            ? "opacity-50 cursor-not-allowed"
+                            : ""
+                        } w-auto`}
+                      >
+                        <MdKeyboardArrowDown />
                       </button>
                     </div>
-                  ))}
-                  <button
-                    type="button" // Tambahkan atribut type="button" di sini
-                    onClick={() => handleAddIn()}
-                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4"
-                  >
-                    Next Parameter
-                  </button>
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteIn(i)}
+                      className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded ml-2"
+                    >
+                      <DeleteIcon />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button" // Tambahkan atribut type="button" di sini
+                  onClick={() => handleAddIn()}
+                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4"
+                >
+                  Next Error
+                </button>
+              </div>
+              {showWebcam && (
+                <button
+                  onClick={capture}
+                  className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-2 z-51"
+                >
+                  <FaCamera className="inline-block mr-2" />
+                  Capture Photo
+                </button>
               )}
               <div className="flex justify-between">
                 <button
@@ -789,33 +872,6 @@ export default function Parameters() {
           </div>
         </div>
       )}
-
-      <Modal open={openDlg} onClose={() => setOpenDlg(false)}>
-        <div className="text-center w-56">
-          <FaRegTrashAlt size={56} className="mx-auto text-red-500" />
-          <div className="mx-auto my-4 w-48">
-            <h3 className="text-lg font-black text-gray-800">Confirm Delete</h3>
-            <p className="text-sm text-gray-500">
-              Are you sure you want to delete this item ?
-            </p>
-            <p>{StationIDDelete}</p>
-          </div>
-          <div className="flex gap-4">
-            <button
-              className="btn btn-danger w-full"
-              onClick={() => handleDelete(idDelete)}
-            >
-              Delete
-            </button>
-            <button
-              className="btn btn-light w-full"
-              onClick={() => setOpenDlg(false)}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }

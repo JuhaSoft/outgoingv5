@@ -6,9 +6,10 @@ import ReactPaginate from "react-paginate";
 import { format } from "date-fns";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Modal from "../Shared/Modal";
+import Modal from "./Shared/Modal";
 import { FaRegTrashAlt } from "react-icons/fa";
-export default function Users() {
+import { ErrorCode } from "react-dropzone";
+export default function Errors() {
   const appConfig = window.globalConfig || {
     siteName: process.env.REACT_APP_SITENAME,
   };
@@ -16,14 +17,16 @@ export default function Users() {
   const [openDlg, setOpenDlg] = useState(false);
   const [error, setError] = useState("");
   const [idDelete, setidDelete] = useState("");
-  const [StationIDDelete, setStationIDDelete] = useState("");
+  const [LineiDDelete, setLineiDDelete] = useState("");
   const [saveData, setSaveData] = useState(Boolean);
   const [dataProduct, setdataProduct] = useState([]);
   const [tbldata, settbldata] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [totalItems, setTotalItems] = useState(10);
+  const [totalPages, SetTotalPages] = useState(1);
+  const [currentPage, SetCurrentPage] = useState(1);
+  const [pageSize, SetPageSize] = useState(10);
   const [dropdownVisible, setDropdownVisible] = useState(false);
-  const [lineNames, setLineNames] = useState([]);
-  let token = localStorage.getItem("token");
   const [selectedOption, setSelectedOption] = useState({
     text: "All Categories",
     value: "All",
@@ -31,10 +34,8 @@ export default function Users() {
 
   const dropdownOptions = [
     { text: "All Categories", value: "All" },
-    { text: "User Name", value: "UserName" },
-    { text: "Email", value: "Email" },
-    { text: "Role", value: "Role" },
-    { text: "Status", value: "IsActive	" },
+    { text: "Error Code", value: "ErrorCode" },
+    { text: "Error Description", value: "ErrorDescription" },
   ];
   const [editDataFromApi, setEditDataFromApi] = useState(null);
 
@@ -42,63 +43,35 @@ export default function Users() {
   const [editData, setEditData] = useState(null);
 
   const [formData, setFormData] = useState({
-    DisplayName: "",
-    UserName: "",
-    Email: "",
-    Password:"Pass1234",
-    Role: "",
-    IsActive: true,
+    ErrorCode: "",
+    ErrorDescription: "",
   });
 
   const openModal = () => {
-    setError(null)
     setShowModal(true);
   };
-
+  //   const handleEdit = (data) => {
+  //     setEditData(data);
+  //     setShowModal(true);
+  //   };
   const handleEdit = async (data) => {
     setEditData(data);
-    setError(null)
     setShowModal(true);
-    
     try {
-      const response = await axios.get(`${api}/api/Account/${data.Id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const response = await axios.get(`${api}/api/ErrorMessage/${data.Id}`);
       setEditDataFromApi(response.data);
-      // Set formData with proper Role and IsActive values
-      const formDataWithRole = {
-        ...response.data,
-        Role: response.data.Role ? response.data.Role : "Select Role",
-        IsActive: response.data.IsActive ? "true" : "false",
-        Image:response.data.Image ? response.data.Image : ""
-      };
-      setFormData(formDataWithRole);
+      setFormData(response.data);
     } catch (error) {
+      // Tangani kesalahan jika permintaan gagal
       toast.error(error.response.data);
     }
   };
- 
-  
   const handleUpdate = async () => {
     try {
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`, // Ganti yourAuthTokenHere dengan token yang sesuai
-        },
-      };
-  
-      const updateData = {
-        DisplayName: "Nama yang ingin diperbarui", // Ganti dengan nilai yang sesuai
-      };
-  
       const response = await axios.put(
-        `${api}/api/Account/update`,
-        formData,
-        config
+        `${api}/api/ErrorMessage/${editData.Id}`,
+        formData
       );
-  
       // Menampilkan notifikasi sukses
       toast.success("Data berhasil diperbarui");
       // Tutup modal
@@ -130,39 +103,25 @@ export default function Users() {
       }
     }
   };
-  
-  
 
   const handleDelete = async (Id) => {
-
+    console.log("Coba delete");
+    console.log(`${api}/api/ErrorMessage/${Id}`);
     try {
-
-     
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`, // Ganti yourAuthTokenHere dengan token yang sesuai
-        },
-      };
-      const dataToSend = {};
-      
-      const response = await axios.put(
-        `${api}/api/Account/updateDelete/${Id}`,
-        formData,
-        config
-      );
+      await axios.delete(`${api}/api/ErrorMessage/${Id}`);
       // Tampilkan notifikasi sukses
       toast.success("Data berhasil dihapus");
       // Muat ulang data setelah penghapusan
       setSaveData(true);
     } catch (error) {
-      toast.error('Error sending data:', error.response.data);
-
+      // Tangani kesalahan
+      toast.error("Gagal menghapus data");
     }
     setOpenDlg(false);
   };
   const confirmDelete = (Gid, id) => {
     setidDelete(Gid);
-    setStationIDDelete(id);
+    setLineiDDelete(id);
     setOpenDlg(true);
     // if (window.confirm("Apakah Anda yakin ingin menghapus data ini?")) {
     //   handleDelete(Gid); // Jika pengguna menekan OK, panggil fungsi handleDelete
@@ -172,130 +131,77 @@ export default function Users() {
     setShowModal(false);
     // Reset nilai input ke nilai awal
     setFormData({
-      DisplayName: "",
-    UserName: "",
-    Email: "",
-    Password:"Pass1234",
-    Role: "",
-      IsActive: true,
+      ErrorCode: "",
+      ErrorDescription: "",
     });
     // Reset nilai editData untuk menandakan tidak ada data yang sedang diedit
     setEditData(null);
     // Reset nilai editDataFromApi untuk menghapus data yang diambil dari API
     setEditDataFromApi(null);
   };
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-  
-   if (name === "Role") {
-      setFormData({
-        ...formData,
-        [name]: value,
-      });
-    } else if (name === "IsActive") {
-      const isActiveValue = value === "true";
-      setFormData({
-        ...formData,
-        [name]: isActiveValue,
-      });
-    } else {
-       if(name === "UserName"){
-        if (value.indexOf(" ") !== -1) {
-          // Jika mengandung spasi, tampilkan pesan error dan jangan ubah nilai UserName
-          setError("Username tidak boleh mengandung spasi");
-        } else {
-          // Jika tidak mengandung spasi, ubah nilai UserName
-          setError("");
-          if (!editData){
-            setFormData({
-              ...formData,
-              [name]: value,
-            });
-          } else{
-            setFormData({
-              ...formData,
-              [name]: formData.UserName,
-            });
-          }
-          
-        }
-      
-      } else {
-        setFormData({
-          ...formData,
-          [name]: value,
-        });
-      }
-    }
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
   };
-  
-  
-  
-
+  const handlerecordPerPage = (event) => {
+    event.preventDefault();
+    const page = event.target.value;
+    SetPageSize(page);
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isValidEmail(formData.Email)) {
-      setError("Email tidak valid");
-      return;
-    }
     if (editData) {
+      // Jika ada data yang diedit, maka lakukan proses update
       handleUpdate();
     } else {
+      // Jika tidak ada data yang diedit, maka lakukan proses penambahan data
       try {
-        const response = await axios.post(`${api}/api/Account/register`, formData, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        toast.success("Data berhasil disimpan");
-        setFormData({
-          DisplayName: "",
-    UserName: "",
-    Email: "",
-    Password:"Pass1234",
-    Role: "",
-          IsActive: true,
-        });
-        closeModal();
-        setError(null)
-        setSaveData(true);
-      } catch (error) {
-        if (error.response) {
-          // Tangani kesalahan dari respons server
-          if (error.response.data && error.response.data.errors) {
-            // Tangani kesalahan validasi
-            const validationErrors = error.response.data.errors;
-            const errorMessage = Object.values(validationErrors)
-              .map((errors) => errors.join(", "))
-              .join("; ");
-            setError(errorMessage);
-          } else {
-            // Tangani kesalahan lain dari respons server
-            setError(error.response.data.message);
-          }
-          // Menampilkan error dari respons server
-          toast.error("Error: " + error.response.data.message);
-        } else if (error.request) {
-          // Tangani kesalahan tanpa respons dari server
-          setError("Tidak ada respons dari server");
-          toast.error("Tidak ada respons dari server");
+        const response = await axios.post(`${api}/api/ErrorMessage`, formData);
+        if (response.status === 200) {
+          // Menampilkan notifikasi sukses
+          toast.success("Data berhasil disimpan");
+          setFormData({ ErrorCode: "", ErrorDescription: "", });
+          // Tutup modal
+          closeModal();
+          // Membuat permintaan kembali untuk memperbarui data di tabel
+          setSaveData(true);
         } else {
-          // Tangani kesalahan lainnya
-          setError("Terjadi kesalahan");
-          toast.error("Terjadi kesalahan");
+          // Tangani kesalahan dengan status selain 200
+          toast.error(`Terjadi kesalahan: ${response.status}`);
+        }
+      } catch (error) {
+        // Tangani kesalahan lainnya
+        if (error.response) {
+          // Kesalahan yang diterima dari server
+          toast.error(`Terjadi kesalahan : ${error.response.data}`);
+        } else {
+          // Kesalahan lain seperti masalah jaringan atau konfigurasi
+          toast.error(`Terjadi kesalahan: ${error.message}`);
         }
       }
     }
   };
-  
 
   useEffect(() => {
     if (!error && !showModal) {
+      // Reset error state jika tidak ada kesalahan dan modal ditutup
       setError("");
     }
   }, [showModal, error]);
 
+  const handlePageClick = async (data) => {
+    let currentPage = data.selected + 1;
+    SetCurrentPage(currentPage);
+    // fetchData("Handle Page ", currentPage, pageSize);
+  };
+  // useEffect(() => {
+  //   fetchData("Loading Awal");
+  // }, []);
+  useEffect(() => {
+    fetchData("Change", currentPage, pageSize);
+  }, [pageSize, currentPage, saveData, showModal]);
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
       // Temukan input berikutnya dalam urutan tab
@@ -320,22 +226,15 @@ export default function Users() {
     }
   };
   const handleSearch = (event) => {
+    // console.log("test");
     event.preventDefault();
 
-    fetchData("handleSearch");
+    fetchData("handleSearch"); // Panggil fungsi fetchData dengan parameter default
+    // Untuk mengomentari kode, gunakan shortcut berikut:
+    // - Di Windows/Linux: Ctrl + /
+    // - Di MacOS: Cmd + /
   };
-  useEffect(() => {
-    const fetchLineNames = async () => {
-      try {
-        const response = await axios.get(`${api}/api/DataLine`);
-        setLineNames(response.data.Items.$values);
-      } catch (error) {
-        toast.error("Error fetching line names:" + error);
-      }
-    };
 
-    fetchLineNames();
-  }, []);
   const handleDropdownToggle = () => {
     setDropdownVisible(!dropdownVisible); // Toggle state ketika tombol dropdown diklik
   };
@@ -343,42 +242,41 @@ export default function Users() {
     setSelectedOption(option);
     setDropdownVisible(false); // Menutup dropdown setelah opsi dipilih
   };
-  const isValidEmail = (email) => {
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    return emailRegex.test(email);
-  };
-  
-
-  const fetchData = async (dari = "sana") => {
+  const fetchData = async (dari = "sana", pageNumber = 1, pageSize = 10) => {
     try {
-     
-
-      const response = await axios.get(`${api}/api/Account/allUsers`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // Menggunakan token dari localStorage
-        },
-      });
-      setdataProduct(response.data.$values);
+      const response = await axios.get(
+        `${api}/api/ErrorMessage?pageNumber=${pageNumber}&pageSize=${pageSize}&SearchQuery=${searchQuery}&Category=${selectedOption.value}`
+      );
+      setdataProduct(response.data.Items.$values);
+      setTotalItems(response.data.TotalItems);
+      if (response.data.TotalPages) {
+        SetTotalPages(response.data.TotalPages);
+      } else {
+        SetTotalPages(1); // Atau tetapkan ke 1 jika tidak ada TotalPages
+      }
     } catch (error) {
-      // toast.error(`Error fetching data dari :${dari} ${error.message}`);
-      toast.error(`Error fetching data: ${dari} - ${error.message}`);
+      // toast.error(`Error fetching data dari :${dari} ${error.message}
+      toast.error(`Error fetching data:${dari} -  ${error.message}`, {});
     }
   };
-  useEffect(() => {
-    fetchData("Change");
-  }, [saveData, showModal, openDlg]);
+
   return (
-    <div className="z-0 ">
-      <div className="fixed top-0 right-4 mb-4 mr-2 mt-11 z-30">
+    <div className="z-0 sm:w-full lg:w-3/4">
+      <div className="fixed top-0 mb-2 z-30 mt-11 sm:mt-24 md:mt-11 lg:mt-11 xl:mt-11">
         <button
           onClick={openModal}
           className=" bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
         >
-          ADD User
+          ADD Error
         </button>
       </div>
-
+      {/* <button
+        type="button"
+        className="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800 absolute -top-3 left-3"
+        onClick={openModal}
+      >
+        ADD WO
+      </button> */}
       <form
         className="max-w-lg mx-auto md:flex md:items-center md:flex-row-reverse items-center "
         onSubmit={handleSearch}
@@ -391,7 +289,7 @@ export default function Users() {
             type="search"
             id="search-dropdown"
             className=" block w-full p-2.5 text-sm text-gray-900 bg-gray-50 rounded-l-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:border-blue-500"
-            placeholder="Search Display Name,User Name ..."
+            placeholder="Search Error Code, Description ..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -478,11 +376,8 @@ export default function Users() {
               <table className="w-full">
                 <thead>
                   <tr className="text-md font-semibold tracking-wide text-left text-white bg-green-600 uppercase border-b border-gray-600">
-                    <th className="px-4 ">Display Name</th>
-                    <th className="px-4 ">User Name</th>
-                    <th className="px-4 ">Email</th>
-                    <th className="px-4">Role</th>
-                    <th className="px-4">Active</th>
+                    <th className="px-4 ">Error Code</th>
+                    <th className="px-4">Error Description</th>
                     <th className="px-4 w-[200px] text-center">Action</th>
                   </tr>
                 </thead>
@@ -493,34 +388,14 @@ export default function Users() {
                         data-name="PSN"
                         className="px-2 text-ms font-semibold border"
                       >
-                        {data.DisplayName ? data.DisplayName : "-"}
-                      </td>
-                      <td
-                        data-name="PSN"
-                        className="px-2 text-ms font-semibold border"
-                      >
-                        {data.UserName ? data.UserName : "-"}
-                      </td>
-                      <td
-                        data-name="PSN"
-                        className="px-2 text-ms font-semibold border"
-                      >
-                        {data.Email ? data.Email : "-"}
+                        {data.ErrorCode ? data.ErrorCode : "-"}
                       </td>
                       <td
                         data-name="Reference"
                         className="px-2  text-xs border"
                       >
-                        {data.Role ? data.Role : "Not Set"}
+                        {data.ErrorDescription ? data.ErrorDescription : "-"}
                       </td>
-                      <td
-  data-name="Reference"
-  className="px-2 text-xs border"
->
-{data.IsActive !== null ? (data.IsActive === true ? "Active" : "Non Active") : "Active"}
-
-
-</td>
                       <td className="px-2 flex justify-center items-center">
                         <button
                           className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 mr-2"
@@ -530,7 +405,7 @@ export default function Users() {
                         </button>
                         <button
                           className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-red-300"
-                          onClick={() => confirmDelete(data.Id, data.UserName)}
+                          onClick={() => confirmDelete(data.Id, data.ErrorCode)}
                         >
                           Delete
                         </button>
@@ -545,16 +420,102 @@ export default function Users() {
 
         <section className="container mx-auto p-2 font-mono sm:hidden">
           <div className="w-full mb-2 overflow-hidden rounded-lg shadow-lg">
-            <div className="w-full overflow-x-auto "></div>
+            <div className="w-full overflow-x-auto ">
+              {dataProduct.map((data, index) => (
+                <div
+                  key={index}
+                  className={`mb-4 p-4 shadow-lg rounded-lg sm:flex sm:flex-wrap sm:justify-normal ${
+                    index % 2 === 0 ? "bg-green-200" : "bg-white"
+                  } border-5`}
+                >
+                  <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
+                    <strong>Line ID </strong>
+                    <span> : {data.LineId ? data.LineId : "-"}</span>
+                  </div>
+                  <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
+                    <strong>Line Name </strong>
+                    <span> : {data.LineName ? data.LineName : "-"}</span>
+                  </div>
+                  <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
+                    <span>
+                      {" "}
+                      <button
+                        className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        onClick={() => handleEdit(data)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-red-300"
+                        onClick={() => confirmDelete(data.Id, data.LineId)}
+                      >
+                        Delete
+                      </button>
+                    </span>
+                  </div>
+
+                  {/* Tempat untuk tombol aksi jika diperlukan */}
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       </div>
-
+      <div className=" mt-1 w-full">
+        <div className="flex flex-col md:flex-row justify-start md:justify-between">
+          <div className="w-full mt-2">
+            <div className="sm:flex-none sm:object-center ">
+              <select
+                name="item"
+                className="  w-16   text-base   bg-white text-gray-800 border border-green-700 rounded items-center   align-middle  justify-start"
+                onChange={(e) => handlerecordPerPage(e)}
+              >
+                <option>10</option>
+                <option>20</option>
+                <option>30</option>
+                <option>50</option>
+                <option>100</option>
+                <option>{totalItems}</option>
+              </select>
+              <div>From {totalItems} Record</div>
+            </div>
+          </div>
+          <div className="flex align-middle  md:justify-end ">
+            <ReactPaginate
+              previousLabel={"previous"}
+              nextLabel={"next"}
+              breakLabel={"..."}
+              pageCount={totalPages}
+              marginPagesDisplayed={2}
+              pageRangeDisplayed={3}
+              onPageChange={handlePageClick}
+              containerClassName={"flex justify-center mt-4"}
+              pageClassName={"mx-1"}
+              pageLinkClassName={
+                "px-3 py-2 bg-white text-green-500 border border-green-500 rounded-md"
+              }
+              previousClassName={"mr-1"}
+              previousLinkClassName={
+                "px-3 py-2 bg-white text-green-500 border border-green-500 rounded-md"
+              }
+              nextClassName={"ml-1"}
+              nextLinkClassName={
+                "px-3 py-2 bg-white text-green-500 border border-green-500 rounded-md"
+              }
+              breakClassName={"mx-1"}
+              breakLinkClassName={
+                "px-3 py-2 bg-white text-green-500 border border-green-500 rounded-md"
+              }
+              activeClassName={"font-bold  text-white"}
+            />
+          </div>
+        </div>
+      </div>
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75">
           <div className="bg-white p-8 rounded-lg shadow-md w-96 overflow-auto max-h-[80vh]">
             <h2 className="text-lg font-bold mb-4">
-              {editData ? "Edit User" : "Add User"}
+              {editData ? "Edit Error" : "Add Error"}
             </h2>
             {error && <p className="text-red-500">{error}</p>}
             <form onSubmit={handleSubmit}>
@@ -562,15 +523,15 @@ export default function Users() {
                 htmlFor="input1"
                 className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
               >
-                Display Name
+                Error Code
               </label>
               <input
                 type="text"
-                name="DisplayName"
-                value={formData.DisplayName}
+                name="ErrorCode"
+                value={formData.ErrorCode}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown} // Mendeteksi tombol Enter
-                placeholder="Display Name"
+                placeholder="Error Code"
                 className="mb-2 p-2 border rounded"
                 style={{ width: "100%" }} // Menetapkan lebar 100%
                 tabIndex={0}
@@ -579,76 +540,18 @@ export default function Users() {
                 htmlFor="input1"
                 className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
               >
-                User Name
+                Error Description
               </label>
-              <input
-                type="text"
-                name="UserName"
-                value={formData.UserName}
+              <textarea
+                name="ErrorDescription"
+                value={formData.ErrorDescription}
                 onChange={handleChange}
-                onKeyDown={handleKeyDown} // Mendeteksi tombol Enter
-                placeholder="User Name"
-                className="mb-2 p-2 border rounded"
-                style={{ width: "100%" }} // Menetapkan lebar 100%
-                tabIndex={0}
-              />
-               <label
-                htmlFor="input1"
-                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-              >
-                Email
-              </label>
-              <input
-                type="text"
-                name="Email"
-                value={formData.Email}
-                onChange={handleChange}
-                onKeyDown={handleKeyDown} // Mendeteksi tombol Enter
-                placeholder="User Email"
-                className="mb-2 p-2 border rounded"
-                style={{ width: "100%" }} // Menetapkan lebar 100%
-                tabIndex={0}
-                pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-                title="Masukkan email yang valid (contoh: gugai.way@gugai.com)"
-              />
-              <label
-                htmlFor="input1"
-                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-              >
-                Role
-              </label>
-              <select
-                id="Role"
-                name="Role"
-                value={formData.Role}
-                onChange={handleChange}
-                className="mb-2 p-2 border rounded"
+                onKeyDown={handleKeyDown}
+                placeholder="Error Description"
+                className="mb-2 p-2 border rounded resize-none w-full"
+                rows={4}
                 tabIndex={1}
-              >
-                <option value="">Select Role</option>
-                <option value="Admin">Admin</option>
-                <option value="Staf">Staf</option>
-                <option value="LI">LI</option>
-                <option value="Teknisi">Teknisi</option>
-                <option value="Operator">Operator</option>
-              </select>
-              <label
-                htmlFor="input1"
-                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-              >
-                Status
-              </label>
-              <select
-                id="IsActive"
-                name="IsActive"
-                value={formData.IsActive}
-                onChange={handleChange}
-                className="mb-2 p-2 border rounded"
-                tabIndex={1}
-              >
-               <option value="true">Active</option>
-                <option value="false">Non Active</option>
-              </select>
+              />
 
               <div className="flex justify-between">
                 <button
@@ -677,7 +580,7 @@ export default function Users() {
             <p className="text-sm text-gray-500">
               Are you sure you want to delete this item ?
             </p>
-            <p>{StationIDDelete}</p>
+            <p>{LineiDDelete}</p>
           </div>
           <div className="flex gap-4">
             <button

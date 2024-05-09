@@ -25,35 +25,42 @@
   },
   {
     "id": 5,
-    "label": "Stting",
+    "label": "Settings",
     "icon": "FiSettings",
     "subMenus": [
+      
       {
         "id": 1,
-        "label": "Parameter",
-        "icon": "BsClipboard2Data",
-        "path": "/Parameters"
-      },
-      {
-        "id": 2,
         "label": "Reference",
         "icon": "FiFolder",
         "path": "/References"
       },
       {
+        "id": 2,
+        "label": "Parameter",
+        "icon": "BsClipboard2Data",
+        "path": "/Parameters"
+      },
+      {
         "id": 3,
-        "label": "Last Station",
-        "icon": "FiFolder",
-        "path": "/LastStations"
+        "label": "Error Messege",
+        "icon": "BiSolidMessageAltX",
+        "path": "/Errors"
       },
       {
         "id": 4,
-        "label": "Line",
-        "icon": "FiFolder",
-        "path": "/Lines"
+        "label": "Last Station",
+        "icon": "MdTableRestaurant",
+        "path": "/LastStations"
       },
       {
         "id": 5,
+        "label": "Line",
+        "icon": "FaGripLines",
+        "path": "/Lines"
+      },
+      {
+        "id": 6,
         "label": "Users",
         "icon": "GrUserSettings",
         "path": "/Users"
