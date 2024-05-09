@@ -388,36 +388,10 @@ export default function Parameters() {
     }
   };
   return (
+    <>
+    
     <div className="z-0 sm:w-full w-auto lg:w-full">
-      {showEnlargedModal && (
-        <div className="fixed inset-0 flex items-center justify-center  z-1000 bg-gray-800 bg-opacity-75">
-          <div className="relative">
-            <img
-              src={enlargedImage}
-              alt="Enlarged"
-              className="max-w-full max-h-screen"
-            />
-            <button
-              className="absolute top-0 right-0 m-4 text-white hover:text-gray-300 bg-red-700 rounded-full"
-              onClick={() => setShowEnlargedModal(false)}
-            >
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
+      
       <form
         className="max-w-lg mx-auto md:flex md:items-center md:flex-row-reverse "
         onSubmit={handleSearch}
@@ -696,9 +670,11 @@ export default function Parameters() {
         </div>
       </div>
 
-      {/* modal form */}
-      {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75 overflow-auto">
+      
+    </div>
+    {/* modal form */}
+    {showModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-max bg-gray-800 bg-opacity-75 overflow-auto">
           <div className="bg-white p-8 rounded-lg shadow-md w-1/2 overflow-auto max-h-1/2">
             <h2 className="text-lg font-bold mb-4">
               {editData ? "Edit Parameter" : "Add Parameter"}
@@ -872,6 +848,35 @@ export default function Parameters() {
           </div>
         </div>
       )}
-    </div>
+      {showEnlargedModal && (
+        <div className="fixed inset-0 flex items-center justify-center  z-max bg-gray-800 bg-opacity-75">
+          <div className="relative">
+            <img
+              src={enlargedImage}
+              alt="Enlarged"
+              className="max-w-full max-h-screen"
+            />
+            <button
+              className="absolute top-0 right-0 m-4 text-white hover:text-gray-300 bg-red-700 rounded-full"
+              onClick={() => setShowEnlargedModal(false)}
+            >
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
