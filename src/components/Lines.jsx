@@ -105,8 +105,7 @@ export default function Lines() {
   };
 
   const handleDelete = async (Id) => {
-    console.log("Coba delete");
-    console.log(`${api}/api/DataLine/${Id}`);
+ 
     try {
       await axios.delete(`${api}/api/DataLine/${Id}`);
       // Tampilkan notifikasi sukses
