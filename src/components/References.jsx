@@ -4,13 +4,23 @@ import Select from "react-select";
 import axios from "axios";
 import ReactPaginate from "react-paginate";
 import { format } from "date-fns";
+import { FaEye, FaEdit } from "react-icons/fa";
+import { MdDelete } from "react-icons/md";
+
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Modal from "./Shared/Modal";
 import { FaRegTrashAlt } from "react-icons/fa";
+import {
+  MdKeyboardArrowDown,
+  MdKeyboardArrowUp,
+  MdDeleteForever,
+} from "react-icons/md";
 export default function References() {
-  const appConfig = window.globalConfig || { siteName: process.env.REACT_APP_SITENAME} 
-  const api =appConfig.APIHOST
+  const appConfig = window.globalConfig || {
+    siteName: process.env.REACT_APP_SITENAME,
+  };
+  const api = appConfig.APIHOST;
   const [openDlg, setOpenDlg] = useState(false);
   const [error, setError] = useState("");
   const [idDelete, setidDelete] = useState("");
@@ -25,8 +35,13 @@ export default function References() {
   const [pageSize, SetPageSize] = useState(10);
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [comboNames, setComboNames] = useState([]);
-  const [selectedOptionCombo, setSelectedOptionCombo] = useState(null);
+  const [parameterCheck, setParameterCheck] = useState([]);
+  const [isStationSelected, setIsStationSelected] = useState(false);
   const [selectedStation, setSelectedStation] = useState(null);
+  const [openCollapse, setOpenCollapse] = useState({});
+  const [detailDataMap, setDetailDataMap] = useState({});
+  const [enlargedImage, setEnlargedImage] = useState(null);
+  const [showEnlargedModal, setShowEnlargedModal] = useState(false);
   const [selectedOption, setSelectedOption] = useState({
     text: "All Categories",
     value: "All",
@@ -54,36 +69,113 @@ export default function References() {
   });
 
   const openModal = () => {
+    setValIn([]);
+    setSelectedStation(null);
+    setError(null);
     setShowModal(true);
   };
+  const handleDetailClick = (id, psn) => {
+    setOpenCollapse((prevOpenCollapse) => ({
+      ...prevOpenCollapse,
+      [id]: !prevOpenCollapse[id],
+    }));
 
-  const handleEdit = async (data) => {
-    setEditData(data);
-    setShowModal(true);
+    fetchDetailData(id);
+  };
+  const handleEditClick = async (id) => {
     try {
-      const response = await axios.get(
-        `${api}/api/DataReference/${data.Id}`
-      );
+      const response = await axios.get(`${api}/api/DataReference/${id}`);
+      const editData = response.data;
+      console.log("editData", editData);
+      setEditData(editData);
+      // setCapturedImage(`${api}${editData.ImageSampleUrl}`);
       setFormData({
-        ...response.data,
-        RefereceName: response.data.RefereceName,
-        StationID: response.data.StationID,
-       
+        RefereceName: editData.RefereceName,
+        StationID: editData.Description,
+        StationName: editData.Description,
+        isDeleted: false,
+        PsnPos: editData.PsnPos,
+        RefCompare: editData.RefCompare,
+        RefPos: editData.RefPos,
+        StationID: editData.LastStationID.Id,
+        StationName: `${editData.LastStationID.StationID} -${editData.LastStationID.StationName} -> ${editData.LastStationID.DataLine.LineName}`,
       });
+
       setSelectedStation({
         value: response.data.LastStationID.StationID,
         label: `${response.data.LastStationID.StationID} -${response.data.LastStationID.StationName} -> ${response.data.LastStationID.DataLine.LineName}`,
       });
+      setValIn(
+        editData.DataReferenceParameterChecks.$values.map((code, index) => {
+          return {
+            value: code.ParameterCheck.Id,
+            label: code.ParameterCheck.Description,
+            Order: index + 1,
+          };
+        })
+      );
+
+      setShowModal(true);
     } catch (error) {
-      toast.error(error.response.data);
+      toast.error("Error fetching data:", error);
     }
   };
+  const fetchParameterCheck = async () => {
+    try {
+      const response = await axios.get(`${api}/api/Paramchecks`);
+      const formattedData = response.data.Items.$values.map((item) => ({
+        value: item.Id,
+        label: item.Description,
+      }));
+      setParameterCheck(formattedData);
+    } catch (error) {
+      toast.error("Error fetching error messages:" + error);
+    }
+  };
+  const handleMoveUp = (index) => {
+    if (index === 0) return; // Tidak dapat memindahkan elemen pertama ke atas
+
+    const updatedValIn = [...valIn];
+    // Tukar posisi elemen dengan elemen sebelumnya
+    [updatedValIn[index], updatedValIn[index - 1]] = [
+      updatedValIn[index - 1],
+      updatedValIn[index],
+    ];
+    // Perbarui nilai Order untuk elemen yang terpengaruh
+    updatedValIn[index].Order = index + 1;
+    updatedValIn[index - 1].Order = index;
+    setValIn(updatedValIn);
+  };
+  const handleMoveDown = (index) => {
+    if (index === valIn.length - 1) return; // Tidak dapat memindahkan elemen terakhir ke bawah
+
+    const updatedValIn = [...valIn];
+    // Tukar posisi elemen dengan elemen setelahnya
+    [updatedValIn[index], updatedValIn[index + 1]] = [
+      updatedValIn[index + 1],
+      updatedValIn[index],
+    ];
+    // Perbarui nilai Order untuk elemen yang terpengaruh
+    updatedValIn[index].Order = index + 1;
+    updatedValIn[index + 1].Order = index + 2;
+    setValIn(updatedValIn);
+  };
+  const handleDeleteIn = (i) => {
+    const deletVal = [...valIn];
+    deletVal.splice(i, 1);
+    setValIn(deletVal);
+  };
   const handleUpdate = async () => {
-   
+    console.log("masuk update");
+    const newFormData = {
+      ...formData,
+      DataReferenceParameterChecks: dynamicInputsData,
+    };
+    console.log("newFormData", newFormData);
     try {
       const response = await axios.put(
         `${api}/api/DataReference/${editData.Id}`,
-        formData
+        newFormData
       );
       // Menampilkan notifikasi sukses
       toast.success("Data berhasil diperbarui");
@@ -154,8 +246,17 @@ export default function References() {
     setEditData(null);
     // Reset nilai editDataFromApi untuk menghapus data yang diambil dari API
     setEditDataFromApi(null);
+    setError(null);
   };
-
+  const [valIn, setValIn] = useState([]);
+  const handleAddIn = () => {
+    if (valIn.length < parameterCheck.length) {
+      const abc = [...valIn, []];
+      setValIn(abc);
+    } else {
+      toast.error("Maximum number of error code reached.");
+    }
+  };
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData({
@@ -164,6 +265,25 @@ export default function References() {
     });
     // formData.RefereceName;
   };
+  const dynamicInputsData = valIn.map((value, index) => {
+    return {
+      ParameterCheckId: value.value, // Menggunakan value.value sebagai nilai ParameterCheckId
+      ...value, // Menyalin properti lainnya dari objek value
+    };
+  });
+  const fetchDetailData = async (id) => {
+    try {
+      const response = await axios.get(`${api}/api/DataReference/${id}`);
+
+      setDetailDataMap((prevmap) => ({
+        ...prevmap,
+        [id]: response.data.DataReferenceParameterChecks.$values,
+      }));
+    } catch (error) {
+      toast.error("Error fetching detail data:", error);
+    }
+  };
+
   const handlerecordPerPage = (event) => {
     event.preventDefault();
     const page = event.target.value;
@@ -171,13 +291,41 @@ export default function References() {
   };
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Variabel untuk menyimpan pesan error
+    let errorMessage = "";
+
+    // Validasi RefereceName
+    if (!formData.RefereceName.trim()) {
+      errorMessage = "Reference Name is required.";
+    }
+
+    // Validasi PsnPos
+    if (!formData.PsnPos.trim()) {
+      errorMessage = "PSN Position is required.";
+    }
+
+    // Validasi selectedStation
+    if (!selectedStation) {
+      errorMessage = "Station is required.";
+    }
+
+    // Jika terdapat error, tampilkan pesan error
+    if (errorMessage) {
+      setError(errorMessage);
+      return;
+    }
     if (editData) {
       handleUpdate();
     } else {
       try {
+        const newFormData = {
+          ...formData,
+          DataReferenceParameterChecks: dynamicInputsData,
+        };
+        console.log("newFormData", newFormData);
         const response = await axios.post(
           `${api}/api/Datareference`,
-          formData
+          newFormData
         );
 
         toast.success("Data berhasil disimpan");
@@ -193,6 +341,7 @@ export default function References() {
         closeModal();
         setSaveData(true);
       } catch (error) {
+        console.log("error", error);
         toast.error(error.response.data);
       }
     }
@@ -200,7 +349,7 @@ export default function References() {
 
   useEffect(() => {
     if (!error && !showModal) {
-      setError("");
+      setError(null);
     }
   }, [showModal, error]);
 
@@ -241,9 +390,7 @@ export default function References() {
   useEffect(() => {
     const fetchComboNames = async () => {
       try {
-        const response = await axios.get(
-          `${api}/api/LastStation`
-        );
+        const response = await axios.get(`${api}/api/LastStation`);
         // Format data dari API sesuai dengan kebutuhan react-select
         const formattedData = response.data.Items.$values.map((item) => ({
           value: item.Id,
@@ -251,11 +398,12 @@ export default function References() {
         }));
         setComboNames(formattedData);
       } catch (error) {
-        toast.error("Error fetching Station names:", error)
+        toast.error("Error fetching Station names:", error);
       }
     };
 
     fetchComboNames();
+    fetchParameterCheck();
   }, []);
   const handleStationSelect = (selectedOption) => {
     setSelectedStation(selectedOption);
@@ -266,8 +414,11 @@ export default function References() {
         StationID: selectedOption.value,
         StationName: selectedOption.StationName,
       });
+      setIsStationSelected(true); // Set isStationSelected menjadi true ketika stasiun dipilih
+    } else {
+      setIsStationSelected(false); // Set isStationSelected menjadi false jika tidak ada stasiun yang dipilih
     }
-   
+
     // Lakukan apa pun yang perlu Anda lakukan dengan stasiun yang dipilih di sini
   };
   const handleDropdownToggle = () => {
@@ -294,9 +445,10 @@ export default function References() {
       toast.error(`Error fetching data:${dari} -  ${error.message}`, {});
     }
   };
+
   return (
     <div className="z-0 ">
-      <div className="fixed top-0 right-4 mb-4 mr-2 mt-11 z-30">
+      <div className="fixed top-0 right-4 mb-4 mr-2 mt-11 z-10">
         <button
           onClick={openModal}
           className=" bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
@@ -396,14 +548,13 @@ export default function References() {
           </div>
         </div>
       </form>
-
       <div className="overflow-x-auto   shadow-md sm:rounded-lg mt-6">
         <section className="container mx-auto p-2 font-mono hidden sm:table w-full">
           <div className="w-full mb-2 overflow-hidden rounded-lg shadow-lg">
             <div className="w-full overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-md font-semibold tracking-wide text-left text-white bg-green-600 uppercase border-b border-gray-600">
+              <table className="w-full table-auto  rounded-lg">
+                <thead className="bg-green-500 text-white rounded-tl-2xl">
+                  <tr>
                     <th className="px-4">Reference Name</th>
                     <th className="px-4 ">Station Id</th>
                     <th className="px-4 ">Station Name</th>
@@ -413,73 +564,138 @@ export default function References() {
                     <th className="px-4 w-[200px] text-center">Action</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white">
-                  {dataProduct.map((data, index) => (
-                    <tr className="text-gray-700" key={index}>
-                      <td
-                        data-name="reference"
-                        className="px-2 text-ms font-semibold border"
-                      >
-                        {data.RefereceName ? data.RefereceName : "-"}
-                      </td>
-                      <td
-                        data-name="StationID"
-                        className="px-2 text-ms font-semibold border"
-                      >
-                        {data.LastStation.StationID
-                          ? data.LastStation.StationID
-                          : "-"}
-                      </td>
-                      <td
-                        data-name="Reference"
-                        className="px-2  text-xs border"
-                      >
-                        {data.LastStation.StationName
-                          ? data.LastStation.StationName
-                          : "-"}
-                      </td>
-                      <td
-                        data-name="Reference"
-                        className="px-2  text-xs border"
-                      >
-                        {data.PsnPos ? data.PsnPos : "-"}
-                      </td>
-                      <td
-                        data-name="Reference"
-                        className="px-2  text-xs border"
-                      >
-                        {data.RefPos ? data.RefPos : "-"}
-                      </td>
-                      <td
-                        data-name="Reference"
-                        className="px-2  text-xs border"
-                      >
-                        {data.RefCompare ? data.RefCompare : "-"}
-                      </td>
-                      <td className="px-2 flex justify-center items-center">
-                        <button
-                          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 mr-2"
-                          onClick={() => handleEdit(data)}
+                <tbody>
+                  {dataProduct.map((data) => (
+                    <React.Fragment key={data.Id}>
+                      <tr className={`border-b  rounded-full `}>
+                        <td
+                          data-name="reference"
+                          className="px-2 text-ms font-semibold border text-center"
                         >
-                          Edit
-                        </button>
-                        <button
-                          className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-red-300"
-                          onClick={() =>
-                            confirmDelete(data.Id, data.RefereceName)
-                          }
+                          {data.RefereceName ? data.RefereceName : "-"}
+                        </td>
+                        <td
+                          data-name="StationID"
+                          className="px-2 text-ms font-semibold border text-center"
                         >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
+                          {data.LastStation.StationID
+                            ? data.LastStation.StationID
+                            : "-"}
+                        </td>
+                        <td
+                          data-name="Reference"
+                          className="px-2  text-xs border text-center"
+                        >
+                          {data.LastStation.StationName
+                            ? data.LastStation.StationName
+                            : "-"}
+                        </td>
+                        <td
+                          data-name="Reference"
+                          className="px-2  text-xs border text-center"
+                        >
+                          {data.PsnPos ? data.PsnPos : "-"}
+                        </td>
+                        <td
+                          data-name="Reference"
+                          className="px-2  text-xs border text-center"
+                        >
+                          {data.RefPos ? data.RefPos : "-"}
+                        </td>
+                        <td
+                          data-name="Reference"
+                          className="px-2  text-xs border text-center"
+                        >
+                          {data.RefCompare ? data.RefCompare : "-"}
+                        </td>
+
+                        <td className="px-4 py-2 text-center ">
+                          <div className="flex">
+                            <button
+                              className="mr-2 hover:text-blue-500"
+                              onClick={() =>
+                                handleDetailClick(data.Id, data.TrackPSN)
+                              }
+                            >
+                              <FaEye size={20} title="Detail" />
+                            </button>
+                            <button
+                              className="hover:text-green-500"
+                              onClick={() => handleEditClick(data.Id)}
+                            >
+                              <FaEdit size={20} title="Edit" />
+                            </button>
+                            <button
+                              className="hover:text-green-500"
+                              onClick={() => confirmDelete(data.Id, data.RefereceName)}
+                            >
+                              <MdDelete size={20} title="Delete" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {openCollapse[data.Id] && detailDataMap[data.Id] && (
+                        <tr>
+                          <td colSpan="9" className="px-1 py-2">
+                            <div className="ml-7">
+                              <h2 className="text-xl font-bold">
+                                Detail Parameters for Reference:{" "}
+                                {data.RefereceName}
+                              </h2>
+                              <table className="w-full ">
+                                <tbody className="bg-slate-100">
+                                  {detailDataMap[data.Id].map(
+                                    (detail, index) => {
+                                      console.log("detail", detail); // Tambahkan ini untuk mencetak detail ke konsol
+                                      return (
+                                        <tr
+                                          key={index}
+                                          className={`border-b rounded-full`}
+                                        >
+                                          <td className="w-1/4">
+                                            {detail.ParameterCheck.Description}
+                                          </td>
+                                          <td className="w-3/4">
+                                            {detail.ParameterCheck
+                                              .ImageSampleUrl && (
+                                              <img
+                                                src={`${api}${detail.ParameterCheck.ImageSampleUrl}`}
+                                                alt="Sample Image"
+                                                className="w-32 h-16"
+                                                onClick={() => {
+                                                  setEnlargedImage(
+                                                    `${api}${detail.ParameterCheck.ImageSampleUrl}`
+                                                  );
+                                                  setShowEnlargedModal(true);
+                                                }}
+                                              />
+                                            )}
+                                          </td>
+                                          <td>
+                                            {/* <Select
+                                              className="mb-3"
+                                              options={comboNames}
+                                              value={selectedStation}
+                                              onChange={handleStationSelect}
+                                            /> */}
+                                          </td>
+                                        </tr>
+                                      );
+                                    }
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
             </div>
           </div>
         </section>
-
         <section className="container mx-auto p-2 font-mono sm:hidden">
           <div className="w-full mb-2 overflow-hidden rounded-lg shadow-lg">
             <div className="w-full overflow-x-auto ">
@@ -491,62 +707,25 @@ export default function References() {
                   } border-5`}
                 >
                   <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
-                    <strong>Reference </strong>
+                    <strong>Description </strong>
+                    <span> : {data.Description ? data.Description : "-"}</span>
+                  </div>
+                  <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
+                    <strong>Image </strong>
                     <span>
                       {" "}
-                      : {data.RefereceName ? data.RefereceName : "-"}
-                    </span>
-                  </div>
-                  <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
-                    <strong>Station Id </strong>
-                    <span>
-                      {" "}
-                      :{" "}
-                      {data.LastStation.StationID
-                        ? data.LastStation.StationID
-                        : "-"}
-                    </span>
-                  </div>
-                  <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
-                    <strong>Station Name </strong>
-                    <span>
-                      {" "}
-                      :{" "}
-                      {data.LastStation.StationName
-                        ? data.LastStation.StationName
-                        : "-"}
-                    </span>
-                  </div>
-                  <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
-                    <strong>PSN Barcode </strong>
-                    <span> : {data.PsnPos ? data.PsnPos : "-"}</span>
-                  </div>
-                  <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
-                    <strong>Ref barcode </strong>
-                    <span> : {data.RefPos ? data.RefPos : "-"}</span>
-                  </div>
-                  <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
-                    <strong>Ref Compare </strong>
-                    <span> : {data.RefCompare ? data.RefCompare : "-"}</span>
-                  </div>
-                  <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
-                    <span>
-                      {" "}
-                      <button
-                        className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
-                        onClick={() => handleEdit(data)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-red-300"
-                        onClick={() => confirmDelete(data.Id, data.StationID)}
-                      >
-                        Delete
-                      </button>
+                      : {data.ImageSampleUrl ? data.ImageSampleUrl : "-"}
                     </span>
                   </div>
 
+                  <div className="flex justify-normal w-full sm:w-auto sm:flex-1 mt-3">
+                    <button
+                      type="button"
+                      className="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
+                    >
+                      Detail
+                    </button>
+                  </div>
                   {/* Tempat untuk tombol aksi jika diperlukan */}
                 </div>
               ))}
@@ -554,6 +733,7 @@ export default function References() {
           </div>
         </section>
       </div>
+
       <div className=" mt-1 w-full">
         <div className="flex flex-col md:flex-row justify-start md:justify-between">
           <div className="w-full mt-2">
@@ -604,9 +784,38 @@ export default function References() {
           </div>
         </div>
       </div>
+      {showEnlargedModal && (
+        <div className="fixed inset-0 flex items-center justify-center  z-max bg-gray-800 bg-opacity-75">
+          <div className="relative">
+            <img
+              src={enlargedImage}
+              alt="Enlarged"
+              className="max-w-full max-h-screen"
+            />
+            <button
+              className="absolute top-0 right-0 m-4 text-white hover:text-gray-300 bg-red-700 rounded-full"
+              onClick={() => setShowEnlargedModal(false)}
+            >
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75">
-          <div className="bg-white p-8 rounded-lg shadow-md w-96 overflow-auto max-h-[80vh]">
+          <div className="bg-white p-8 rounded-lg shadow-md w-3/4 overflow-auto max-h-full">
             <h2 className="text-lg font-bold mb-4">
               {editData ? "Edit Reference" : "Add Reference"}
             </h2>
@@ -614,83 +823,175 @@ export default function References() {
             <form onSubmit={handleSubmit}>
               <label
                 htmlFor="input1"
-                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white" >
+                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              >
                 Reference Name
               </label>
-              <input
-                type="text"
-                name="RefereceName"
-                value={formData.RefereceName}
-                onChange={handleChange}
-                onKeyDown={handleKeyDown} // Mendeteksi tombol Enter
-                placeholder="Reference Name"
-                className="mb-2 p-2 border rounded"
-                style={{ width: "100%" }} // Menetapkan lebar 100%
-                tabIndex={0}
-              />
-              <label
-                htmlFor="input1"
-                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"  >
-                SN Position
-              </label>
-              <input
-                type="text"
-                name="PsnPos"
-                value={formData.PsnPos}
-                onChange={handleChange}
-                onKeyDown={handleKeyDown} // Mendeteksi tombol Enter
-                placeholder="SN Position"
-                className="mb-2 p-2 border rounded"
-                style={{ width: "100%" }} // Menetapkan lebar 100%
-                tabIndex={1}
-              />
-              <label
-                htmlFor="input1"
-                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-              >
-                REF Position
-              </label>
-              <input
-                type="text"
-                name="RefPos"
-                value={formData.RefPos}
-                onChange={handleChange}
-                onKeyDown={handleKeyDown} // Mendeteksi tombol Enter
-                placeholder="Ref Position"
-                className="mb-2 p-2 border rounded"
-                style={{ width: "100%" }} // Menetapkan lebar 100%
-                tabIndex={2}
-              />
-              <label
-                htmlFor="input1"
-                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-              >
-                REF Compare
-              </label>
-              <input
-                type="text"
-                name="RefCompare"
-                value={formData.RefCompare}
-                onChange={handleChange}
-                onKeyDown={handleKeyDown} // Mendeteksi tombol Enter
-                placeholder="Ref Compare"
-                className="mb-2 p-2 border rounded"
-                style={{ width: "100%" }} // Menetapkan lebar 100%
-                tabIndex={3}
-              />
-              <label
-                htmlFor="input1"
-                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-              >
-                Station Name
-              </label>
-              <Select
-                className="mb-3"
-                options={comboNames}
-                value={selectedStation}
-                onChange={handleStationSelect}
-              />
-             
+              {editData ? (
+                <input
+                  type="text"
+                  name="RefereceName"
+                  value={formData.RefereceName}
+                  readOnly // Tambahkan atribut readOnly untuk mencegah pengeditan
+                  className="mb-2 p-2 border rounded"
+                  style={{ width: "100%" }}
+                  tabIndex={0}
+                />
+              ) : (
+                <input
+                  type="text"
+                  name="RefereceName"
+                  value={formData.RefereceName}
+                  onChange={handleChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Reference Name"
+                  className="mb-2 p-2 border rounded"
+                  style={{ width: "100%" }}
+                  tabIndex={0}
+                />
+              )}
+              <div className="flex mb-4 gap-3">
+                <div className="w-1/4  h-12 mb-5 ">
+                  <label
+                    htmlFor="input1"
+                    className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                  >
+                    SN Position
+                  </label>
+                  <input
+                    type="text"
+                    name="PsnPos"
+                    value={formData.PsnPos}
+                    onChange={handleChange}
+                    onKeyDown={handleKeyDown} // Mendeteksi tombol Enter
+                    placeholder="SN Position"
+                    className="mb-2 p-2 border rounded"
+                    style={{ width: "100%" }} // Menetapkan lebar 100%
+                    tabIndex={1}
+                  />
+                </div>
+                <div className="w-1/4 h-12">
+                  <label
+                    htmlFor="input1"
+                    className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                  >
+                    REF Position
+                  </label>
+                  <input
+                    type="text"
+                    name="RefPos"
+                    value={formData.RefPos}
+                    onChange={handleChange}
+                    onKeyDown={handleKeyDown} // Mendeteksi tombol Enter
+                    placeholder="Ref Position"
+                    className="mb-2 p-2 border rounded"
+                    style={{ width: "100%" }} // Menetapkan lebar 100%
+                    tabIndex={2}
+                  />
+                </div>
+                <div className="w-1/4   h-12">
+                  <label
+                    htmlFor="input1"
+                    className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                  >
+                    REF Compare
+                  </label>
+                  <input
+                    type="text"
+                    name="RefCompare"
+                    value={formData.RefCompare}
+                    onChange={handleChange}
+                    onKeyDown={handleKeyDown} // Mendeteksi tombol Enter
+                    placeholder="Ref Compare"
+                    className="mb-2 p-2 border rounded"
+                    style={{ width: "100%" }} // Menetapkan lebar 100%
+                    tabIndex={3}
+                  />
+                </div>
+                <div className="w-1/4  h-12"></div>
+              </div>
+
+              <div className="flex mb-4 gap-3">
+                <div className="w-1/2  h-12 mb-3">
+                  <label
+                    htmlFor="input1"
+                    className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                  >
+                    Station Name
+                  </label>
+                  <Select
+                    className="mb-3"
+                    options={comboNames}
+                    value={selectedStation}
+                    onChange={handleStationSelect}
+                  />
+                </div>
+                <div className="w-1/2  h-12"></div>
+              </div>
+
+              <div className="mb-7">
+                {valIn.map((data, i) => (
+                  <div className="mb-4 flex items-center  " key={i}>
+                    <Select
+                      value={data}
+                      options={parameterCheck}
+                      onChange={(selectedOption) => {
+                        const updatedValIn = [...valIn];
+                        updatedValIn[i] = selectedOption;
+                        setValIn(updatedValIn);
+                      }}
+                      className="  py-2 mr-2 w-3/4"
+                    />
+                    <div className="flex flex-col">
+                      <button
+                        type="button"
+                        onClick={() => handleMoveUp(i)}
+                        disabled={i === 0}
+                        className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2 ${
+                          i === 0 ? "opacity-50 cursor-not-allowed" : ""
+                        } w-auto`}
+                      >
+                        <MdKeyboardArrowUp />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveDown(i)}
+                        disabled={i === valIn.length - 1}
+                        className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2 ${
+                          i === valIn.length - 1
+                            ? "opacity-50 cursor-not-allowed"
+                            : ""
+                        } w-auto`}
+                      >
+                        <MdKeyboardArrowDown />
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteIn(i)}
+                      className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded ml-2"
+                    >
+                      <MdDeleteForever />
+                    </button>
+                  </div>
+                ))}
+
+                <div className="flex mb-4 justify-end">
+                  <div className="w-1/4 h-12"></div>
+                  <div className="w-1/4   h-12"></div>
+                  <div className="w-1/4 h-12 items-end">
+                    {isStationSelected && (
+                      <button
+                        type="button"
+                        onClick={() => handleAddIn()}
+                        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4"
+                      >
+                        Next Parameter
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
 
               <div className="flex justify-between">
                 <button

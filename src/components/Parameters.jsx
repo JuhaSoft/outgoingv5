@@ -7,12 +7,17 @@ import "react-toastify/dist/ReactToastify.css";
 import Webcam from "react-webcam";
 import { FaCamera } from "react-icons/fa";
 import { GrGallery } from "react-icons/gr";
-import DeleteIcon from "@mui/icons-material/Delete";
 import { FaArrowUp, FaArrowDown } from "react-icons/fa";
-import { MdKeyboardArrowDown, MdKeyboardArrowUp } from "react-icons/md";
+import {
+  MdKeyboardArrowDown,
+  MdKeyboardArrowUp,
+  MdDeleteForever,
+} from "react-icons/md";
 import { FaEye, FaEdit } from "react-icons/fa";
 import { format } from "date-fns";
 import { MdDelete } from "react-icons/md";
+import Modal from "./Shared/Modal";
+import { FaRegTrashAlt } from "react-icons/fa";
 export default function Parameters() {
   const appConfig = window.globalConfig || {
     siteName: process.env.REACT_APP_SITENAME,
@@ -78,7 +83,7 @@ export default function Parameters() {
       Description: "",
       ErrorCode: [],
     });
-    
+
     setSelectedReference(null); // Reset juga selected reference jika diperlukan
   };
   const resetFoto = () => {
@@ -103,7 +108,7 @@ export default function Parameters() {
     setCurrentImageIndex(index);
     setShowImageModal(true);
   };
-  
+
   const fetchDetailData = async (id) => {
     try {
       const response = await axios.get(`${api}/api/Paramchecks/${id}`);
@@ -159,15 +164,13 @@ export default function Parameters() {
     if (editData) {
       const manipulatedData = {
         ...newFormData,
-        ParameterCheckErrorMessages: newFormData.ParameterCheckErrorMessages.map(
-          (item) => ({
+        ParameterCheckErrorMessages:
+          newFormData.ParameterCheckErrorMessages.map((item) => ({
             ErrorMessageId: item.value,
             Order: item.Order,
-          })
-        ),
+          })),
       };
       try {
-        
         const response = await axios.put(
           `${api}/api/ParamChecks/${editData.Id}`,
           manipulatedData
@@ -204,7 +207,6 @@ export default function Parameters() {
       }
     } else {
       try {
-        
         const response = await axios.post(
           `${api}/api/ParamChecks`,
           newFormData,
@@ -240,7 +242,7 @@ export default function Parameters() {
     let currentPage = data.selected + 1;
     SetCurrentPage(currentPage);
   };
-
+console.log('openDlg',openDlg)
   useEffect(() => {
     fetchData("Change", currentPage, pageSize);
   }, [pageSize, currentPage, saveData, showModal, openDlg]);
@@ -356,7 +358,6 @@ export default function Parameters() {
   };
   const dynamicInputsData = valIn.map((value, index) => ({
     ...value, // Menyalin properti dari objek value
-    Order: index + 1, // Menambahkan nomor urutan
   }));
   const handleDetailClick = (id, psn) => {
     setOpenCollapse((prevOpenCollapse) => ({
@@ -373,11 +374,21 @@ export default function Parameters() {
       toast.success("Data berhasil dihapus");
       // Muat ulang data setelah penghapusan
       setSaveData(true);
+      setOpenDlg(false);
     } catch (error) {
       // Tangani kesalahan
       toast.error("Gagal menghapus data");
     }
-    
+  };
+  const confirmDelete = (Gid, id) => {
+    console.log("masuk comfirm delete",Gid);
+    console.log("masuk comfirm delete2",id);
+    setidDelete(Gid);
+    setStationIDDelete(id);
+    setOpenDlg(true);
+    // if (window.confirm("Apakah Anda yakin ingin menghapus data ini?")) {
+    //   handleDeleteClick(Gid); // Jika pengguna menekan OK, panggil fungsi handleDelete
+    // }
   };
   const handleEditClick = async (id) => {
     try {
@@ -387,7 +398,7 @@ export default function Parameters() {
       setEditData(editData);
       setCapturedImage(`${api}${editData.ImageSampleUrl}`);
       setFormData({
-        Id:editData.Id,
+        Id: editData.Id,
         Description: editData.Description,
         ErrorCode: editData.ErrorCode,
         ImageSampleUrl: `${api}${editData.ImageSampleUrl}`,
@@ -407,14 +418,15 @@ export default function Parameters() {
       toast.error("Error fetching data:", error);
     }
   };
+  console.log("dataProduct", dataProduct);
   return (
     <>
-      <div className="z-0 sm:w-full w-auto lg:w-full">
+      <div className="z-0 sm:w-full w-auto lg:w-3/4">
         <form
           className="max-w-lg mx-auto md:flex md:items-center md:flex-row-reverse "
           onSubmit={handleSearch}
         >
-          <div className="relative flex-grow  sm:w-3/4 md:w-auto">
+          <div className="relative flex-grow  sm:w-full md:w-full">
             <label htmlFor="search-dropdown" className="sr-only">
               Search
             </label>
@@ -449,7 +461,7 @@ export default function Parameters() {
             </button>
           </div>
           <div className="md:ml-4">
-            <div className="relative  sm:w-3/4 md:w-auto ">
+            <div className="relative  sm:w-3/4 md:w-auto  ">
               <label htmlFor="dropdown-button" className="sr-only ">
                 Select Category
               </label>
@@ -512,7 +524,7 @@ export default function Parameters() {
 
         <div className="overflow-x-auto   shadow-md sm:rounded-lg mt-6">
           <section className="container mx-auto p-2 font-mono hidden sm:table w-full">
-            <div className="w-3/4 mb-2 overflow-hidden rounded-lg shadow-lg">
+            <div className="w-full mb-2 overflow-hidden rounded-lg shadow-lg">
               <div className="w-full overflow-x-auto">
                 <table className="w-full table-auto  rounded-lg">
                   <thead className="bg-green-500 text-white rounded-tl-2xl">
@@ -562,9 +574,11 @@ export default function Parameters() {
                               </button>
                               <button
                                 className="hover:text-green-500"
-                                onClick={() => handleDeleteClick(track.Id)}
+                                onClick={() =>
+                                  confirmDelete(track.Id, track.Description)
+                                }
                               >
-                                <MdDelete  size={20} title="Edit" />
+                                <MdDelete size={20} title="Delete" />
                               </button>
                             </div>
                           </td>
@@ -572,7 +586,7 @@ export default function Parameters() {
                         {openCollapse[track.Id] && detailDataMap[track.Id] && (
                           <tr>
                             <td colSpan="9" className="px-1 py-2">
-                              <div className="">
+                              <div className="ml-7">
                                 <h2 className="text-xl font-bold">
                                   Detail Data for Track ID: {track.Description}
                                 </h2>
@@ -742,7 +756,7 @@ export default function Parameters() {
                   className={`${showWebcam ? "block" : "hidden"} w-64 h-48`}
                 />
                 <button
-                type="button"
+                  type="button"
                   onClick={toggleWebcam}
                   className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded z-52 flex items-center"
                 >
@@ -764,21 +778,21 @@ export default function Parameters() {
                   className="hidden"
                 />
                 <button
-                type="button"
+                  type="button"
                   onClick={resetFoto}
                   className="bg-red-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded z-52"
                 >
                   Hapus Foto
                 </button>
                 {showWebcam && (
-                <button
-                  onClick={capture}
-                  className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-2 z-51"
-                >
-                  <FaCamera className="inline-block mr-2" />
-                  Capture Photo
-                </button>
-              )}
+                  <button
+                    onClick={capture}
+                    className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-2 z-51"
+                  >
+                    <FaCamera className="inline-block mr-2" />
+                    Capture Photo
+                  </button>
+                )}
               </div>
 
               {/* Menampilkan gambar yang diambil */}
@@ -837,7 +851,7 @@ export default function Parameters() {
                       onClick={() => handleDeleteIn(i)}
                       className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded ml-2"
                     >
-                      <DeleteIcon />
+                      <MdDeleteForever />
                     </button>
                   </div>
                 ))}
@@ -849,7 +863,7 @@ export default function Parameters() {
                   Next Error
                 </button>
               </div>
-              
+
               <div className="flex justify-between">
                 <button
                   type="submit"
@@ -926,8 +940,37 @@ export default function Parameters() {
               </svg>
             </button>
           </div>
+          
         </div>
       )}
+      <Modal open={openDlg} onClose={() => setOpenDlg(false)}>
+            <div className="text-center w-56">
+              <FaRegTrashAlt size={56} className="mx-auto text-red-500" />
+              <div className="mx-auto my-4 w-48">
+                <h3 className="text-lg font-black text-gray-800">
+                  Confirm Delete
+                </h3>
+                <p className="text-sm text-gray-500">
+                  Are you sure you want to delete this item ?
+                </p>
+                <p>{StationIDDelete}</p>
+              </div>
+              <div className="flex gap-4">
+                <button
+                  className="btn btn-danger w-full"
+                  onClick={() => handleDeleteClick(idDelete)}
+                >
+                  Delete
+                </button>
+                <button
+                  className="btn btn-light w-full"
+                  onClick={() => setOpenDlg(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </Modal>
     </>
   );
 }
