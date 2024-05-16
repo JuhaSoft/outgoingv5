@@ -33,6 +33,7 @@ export default function Orders() {
   const [selectedStation, setSelectedStation] = useState(null);
   let token = localStorage.getItem("token");
   let UserId = localStorage.getItem("UserId");
+  let userRole = localStorage.getItem("Role");
   const [isWoRunning, setIsWoRunning] = useState(
     localStorage.getItem("woStartRun") === "true"
   );
@@ -198,6 +199,7 @@ export default function Orders() {
       handleUpdate();
     } else {
       try {
+         
         const response = await axios.post(`${api}/api/WO`, formData, {
           headers: {
             "Content-Type": "application/json",
@@ -354,18 +356,21 @@ export default function Orders() {
     }
   };
   const renderSelectButton = (data) => {
-    if (data.WoStatus === "Open" ) {
+    if (data.WoStatus === "Open") {
       return (
-        <button
-          className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-red-300"
-          onClick={() => handleSelect(data)}
-        >
-          Select
-        </button>
+         
+          <button
+            className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-red-300"
+            onClick={() => handleSelect(data)}
+          >
+            Select
+          </button>
+        
       );
     }
     return null; // Tombol tidak ditampilkan jika WoStatus bukan "Open"
   };
+  
   const handleSelect = (data) => {
     // Simpan data yang dipilih ke state
 
@@ -417,7 +422,9 @@ export default function Orders() {
   };
   return (
     <div className="z-0 ">
-       <h5 className="text-xl">Order</h5>
+       <div className="flex items-center gap-3 mb-2 bg-green-500 text-white  pl-2 rounded-2xl">
+         <span className="text-2xl py-2">Order</span>
+      </div>
       {selectedData && (
         <div className="mb-4">
         <div className="mx-auto">
@@ -526,7 +533,9 @@ export default function Orders() {
                 />
               </div>
             </div>
-            <div>
+            {userRole && (
+              <div>
+        
               <button
                 // className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-4 md:mt-0 md:ml-2 "
                 className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-4 md:mt-0 md:ml-2 ${
@@ -537,12 +546,14 @@ export default function Orders() {
                 {isWoRunning ? "Stop" : "Run"}
               </button>
             </div>
+ )}
+            
           </div>
         </div>
       </div>
       )}
 
-      <div
+      {/* <div
         className={`fixed top-0 right-4 mb-4 mr-2 ${
           selectedData ? "mt-40" : "mt-11"
         } z-30`}
@@ -553,7 +564,25 @@ export default function Orders() {
         >
           ADD Order
         </button>
-      </div>
+      </div> */}
+      {userRole && (
+        <div
+          className={`fixed top-0 right-4 mb-4 mr-2 ${
+            selectedData ? "mt-40" : "mt-11"
+          } z-30`}
+        >
+          <button
+            onClick={openModal}
+            className=" bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+          >
+            ADD Order
+          </button>
+        </div>
+      )}
+
+
+
+
 
       <form
         className="max-w-lg mx-auto md:flex md:items-center md:flex-row-reverse items-center "
@@ -718,22 +747,26 @@ export default function Orders() {
                         className="px-2 py-1 text-xs border text-center"
                       >
                         <div className="flex justify-normal w-full sm:w-auto sm:flex-1">
+                         
+                        {userRole && (
                           <span>
-                            <button
-                              className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 mr-2"
-                              onClick={() => handleEdit(data)}
-                            >
-                              Edit
-                            </button>
-                            {/* <button
-                              className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-red-300"
-                              // onClick={() => confirmDelete(data.Id, data.StationID)}
-                            >
-                              Select
-                            </button> */}
-                        
-                        {localStorage.getItem('woStartRun') !== 'true' && renderSelectButton(data)}
-                          </span>
+                          <button
+                            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 mr-2"
+                            onClick={() => handleEdit(data)}
+                          >
+                            Edit
+                          </button>
+                          {/* <button
+                            className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-red-300"
+                            // onClick={() => confirmDelete(data.Id, data.StationID)}
+                          >
+                            Select
+                          </button> */}
+                      
+                      {localStorage.getItem('woStartRun') !== 'true' && renderSelectButton(data)}
+                        </span>
+ )}
+                          
                         </div>
                       </td>
                     </tr>
@@ -865,7 +898,7 @@ export default function Orders() {
       </div>
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75">
-          <div className="bg-white p-8 rounded-lg shadow-md w-96 overflow-auto max-h-[100vh]">
+          <div className="bg-white p-8 rounded-lg shadow-md w-3/4 overflow-auto max-h-[100vh]">
             <h2 className="text-lg font-bold mb-4">
               {editData ? "Edit Order" : "Add Order"}
             </h2>

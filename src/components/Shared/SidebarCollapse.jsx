@@ -14,9 +14,11 @@ import { BsClipboard2Data } from "react-icons/bs";
 import useSidebarStore from "../SidebarStore.js";
 import { MdTableRestaurant } from "react-icons/md";
 import { BiSolidMessageAltX } from "react-icons/bi";
+import { BiPurchaseTagAlt } from "react-icons/bi";
 // Import HiOutlineLogout icon
 import { HiOutlineLogout } from "react-icons/hi";
-
+import { MdOutlineDataset } from "react-icons/md";
+import { FcProcess } from "react-icons/fc";
 // Import submenuProfil from another file
 import { submenuProfil } from "./subMenuProfil.jsx";
 
@@ -39,6 +41,9 @@ const iconMap = {
   FaGripLines:FaGripLines,
   MdTableRestaurant:MdTableRestaurant,
   BiSolidMessageAltX:BiSolidMessageAltX,
+  BiPurchaseTagAlt:BiPurchaseTagAlt,
+  MdOutlineDataset:MdOutlineDataset,
+  FcProcess:FcProcess
 };
 
 const SidebarCollapse = () => {
@@ -172,16 +177,11 @@ const SidebarCollapse = () => {
       </button>
 
       <div className="flex gap-x-4 items-center">
-        {React.createElement(iconMap["FiHome"], {
-          className: "text-3xl",
-          style: { fontSize: isOpen ? "" : "1.5rem" },
-        })}
+       
         <h1
-          className={`text-xl duration-300 ${!isOpen && "hidden"} ${
-            isOpen ? "" : "text-lg"
-          }`}
+          className={`text-2xl duration-300 `}
         >
-          Logo
+          TQW
         </h1>
       </div>
 

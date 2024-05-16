@@ -20,6 +20,7 @@ import Users from './components/Users/Users'
 import EditProfileForm from './components/Users/EditProfileForm'
 import ChangePassword from './components/Users/ChangePassword'
 import Errors from './components/Errors'
+import Grafik from './components/Grafik'
 // import CollapsibleTable from './components/CollapsibleTable'
 
 const App = () => {
@@ -28,7 +29,7 @@ const App = () => {
     <Router>
     <Routes>
       <Route path='/' element={<Layout />}>
-        <Route index element={<Dashboard />} />
+        <Route index element={<Grafik />} />
         <Route path='products' element={<Products />} />
         <Route path='orders' element={<Orders />} />
         <Route path='Lines' element={<Lines />} />
@@ -37,6 +38,7 @@ const App = () => {
         <Route path='Parameters' element={<Parameters />} />
         <Route path='LastStations' element={<LastStations />} />
         <Route path='LoadingPage' element={<LoadingPage />} />
+        <Route path='Datas' element={<Dashboard />} />
         <Route path='Users' element={<Users />} />
         <Route path='Users/EditProfileForm' element={<EditProfileForm />} />
         <Route path='Users/ChangePassword' element={<ChangePassword />} />

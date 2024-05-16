@@ -84,9 +84,10 @@ export default function References() {
   };
   const handleEditClick = async (id) => {
     try {
+     
       const response = await axios.get(`${api}/api/DataReference/${id}`);
       const editData = response.data;
-      console.log("editData", editData);
+     
       setEditData(editData);
       // setCapturedImage(`${api}${editData.ImageSampleUrl}`);
       setFormData({
@@ -97,13 +98,13 @@ export default function References() {
         PsnPos: editData.PsnPos,
         RefCompare: editData.RefCompare,
         RefPos: editData.RefPos,
-        StationID: editData.LastStationID.Id,
-        StationName: `${editData.LastStationID.StationID} -${editData.LastStationID.StationName} -> ${editData.LastStationID.DataLine.LineName}`,
+        StationID: editData.LastStation.Id,
+        StationName: `${editData.LastStation.StationID} -${editData.LastStation.StationName} -> ${editData.LastStation.DataLine.LineName}`,
       });
 
       setSelectedStation({
-        value: response.data.LastStationID.StationID,
-        label: `${response.data.LastStationID.StationID} -${response.data.LastStationID.StationName} -> ${response.data.LastStationID.DataLine.LineName}`,
+        value: response.data.LastStation.StationID,
+        label: `${response.data.LastStation.StationID} -${response.data.LastStation.StationName} -> ${response.data.LastStation.DataLine.LineName}`,
       });
       setValIn(
         editData.DataReferenceParameterChecks.$values.map((code, index) => {
@@ -117,6 +118,7 @@ export default function References() {
 
       setShowModal(true);
     } catch (error) {
+       
       toast.error("Error fetching data:", error);
     }
   };
@@ -166,12 +168,10 @@ export default function References() {
     setValIn(deletVal);
   };
   const handleUpdate = async () => {
-    console.log("masuk update");
     const newFormData = {
       ...formData,
       DataReferenceParameterChecks: dynamicInputsData,
     };
-    console.log("newFormData", newFormData);
     try {
       const response = await axios.put(
         `${api}/api/DataReference/${editData.Id}`,
@@ -322,7 +322,6 @@ export default function References() {
           ...formData,
           DataReferenceParameterChecks: dynamicInputsData,
         };
-        console.log("newFormData", newFormData);
         const response = await axios.post(
           `${api}/api/Datareference`,
           newFormData
@@ -341,7 +340,6 @@ export default function References() {
         closeModal();
         setSaveData(true);
       } catch (error) {
-        console.log("error", error);
         toast.error(error.response.data);
       }
     }
@@ -646,7 +644,6 @@ export default function References() {
                                 <tbody className="bg-slate-100">
                                   {detailDataMap[data.Id].map(
                                     (detail, index) => {
-                                      console.log("detail", detail); // Tambahkan ini untuk mencetak detail ke konsol
                                       return (
                                         <tr
                                           key={index}

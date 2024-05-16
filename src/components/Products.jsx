@@ -1,4 +1,4 @@
-import React, { useEffect, useState,useRef  } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { FaEye, FaEdit } from "react-icons/fa";
 import ReactPaginate from "react-paginate";
@@ -11,6 +11,7 @@ import ImageModal from "./ImageModal";
 import Webcam from "react-webcam";
 import { FaCamera } from "react-icons/fa";
 import { GrGallery } from "react-icons/gr";
+import _ from "lodash";
 export default function Products() {
   const appConfig = window.globalConfig || {
     siteName: process.env.REACT_APP_SITENAME,
@@ -43,14 +44,34 @@ export default function Products() {
   const [currentImageModalImages, setCurrentImageModalImages] = useState([]);
   const [detailDataMap, setDetailDataMap] = useState({});
   const [woData, setsetWoData] = useState({});
+  const [showEnlargedModal, setShowEnlargedModal] = useState(false);
+  const [enlargedImage, setEnlargedImage] = useState(null);
+  const [checkboxStates, setCheckboxStates] = useState([]);
+  const [inputValues, setInputValues] = useState([]);
+
+  const handleCheckboxChange = (index, checked) => {
+    setCheckboxStates((prevStates) => {
+      const newStates = [...prevStates];
+      newStates[index] = checked;
+      return newStates;
+    });
+  };
+
+  const handleInputChange = (index, value) => {
+    setInputValues((prevValues) => {
+      const newValues = [...prevValues];
+      newValues[index] = value;
+      return newValues;
+    });
+  };
   // const inputPSN = useRef(null);
   const [selectedData, setSelectedData] = useState(
     JSON.parse(localStorage.getItem("selectedOrder"))
   );
   const [openCollapse, setOpenCollapse] = useState({});
   const [parameterGalleries, setParameterGalleries] = useState(
-    apiData && apiData.ParameterChecks
-      ? apiData.ParameterChecks.map(() => [])
+    apiData && apiData.ParameterCheck
+      ? apiData.ParameterCheck.map(() => [])
       : []
   );
   const [trackingData, setTrackingData] = useState({
@@ -137,41 +158,62 @@ export default function Products() {
     try {
       const response = await axios.get(`${api}/api/DataTracks/${id}`);
       const trackData = response.data;
+
       setPsnEdit(response.data.TrackPSN);
+
       const detailDataResponse = await axios.get(
         `${api}/api/DataTrackChecks/${id}`
       );
       const detailData = detailDataResponse.data.$values;
 
       // Mengisi data detail ke apiData.ParameterChecks
-      const parameterChecks = detailData.map((item) => ({
-        Id: item.ParameterCheck.Id,
-        Description: item.ParameterCheck.Description,
-        Order: item.ParameterCheck.Order,
-        Result: item.DTCValue,
-        ImageDataChecks: item.ImageDataChecks.$values.map(
-          (image) => `${api}${image.ImageUrl}`
-        ),
-      }));
-      setApiData((prevData) => ({
-        ...prevData,
-        ParameterChecks: parameterChecks,
-      }));
+      const parameterCheck = detailData.map((item) => {
+        return {
+          Id: item.ParameterCheck.Id,
+          Description: item.ParameterCheck.Description,
+          Order: item.ParameterCheck.Order,
+          Result: item.DTCValue,
+          ImageDataChecks: item.ImageDataChecks.$values.map(
+            (image) => `${api}${image.ImageUrl}`
+          ),
+          ParameterCheckErrorMessages: item.ErrorMessage,
+          selectErrorMessage:
+            item.ParameterCheck.ParameterCheckErrorMessages.$values,
+        };
+      });
 
+      if (apiData) {
+        setApiData((prevData) => ({
+          ...prevData,
+          ParameterCheck: parameterCheck,
+        }));
+      } else {
+        setApiData({ ParameterCheck: parameterCheck });
+      }
       setDataTrackCheckings(
-        parameterChecks.map((check) => ({
-          PCId: check.Id,
+        parameterCheck.map((check) => ({
+          PCID: check.Id,
           Result: check.Result,
+          ErrorId: check.ErrorId,
+          Appove:check.Appove,
+            ApprovalId:check.ApprovalId,
+            ApprRemaks:check.ApprRemaks,
         }))
       );
 
       // Mengisi data detail ke dataTrackCheckings
-      const newDataTrackCheckings = parameterChecks.map(({ Id, Result }) => ({
-        PCId: Id,
-        Result,
-      }));
+      const newDataTrackCheckings = parameterCheck.map(
+        ({ Id, Result, ErrorId }) => ({
+          PCID: Id,
+          Result,
+          ErrorId,
+          Appove:false,
+          ApprovalId:null,
+          ApprRemaks:"",
+        })
+      );
       setDataTrackCheckings(newDataTrackCheckings);
-      fetchDataWoParam(selectedData.Id)
+      fetchDataWoParam(selectedData.Id);
       setEditingData(trackData);
       setShowModal(true);
     } catch (error) {
@@ -185,32 +227,52 @@ export default function Products() {
   };
   const fetchDataParam = async () => {
     try {
-      const response = await axios.get(
-        `${api}/api/ParamChecks/ByReference/${refId}`
-      );
-      const transformedData = transformData(response.data);
-      setApiData(transformedData);
+      const response = await axios.get(`${api}/api/Datareference/${refId}`);
 
+      const parameterChecks =
+        response.data.DataReferenceParameterChecks.$values;
+
+      // Membuat objek baru untuk menyimpan ParameterCheck
+      const newData = { ParameterCheck: [] };
+
+      // Menambahkan ParameterCheck ke dalam newData.ParameterCheck
+      parameterChecks.forEach((item) => {
+        if (item.ParameterCheck) {
+          newData.ParameterCheck.push(item.ParameterCheck);
+        }
+      });
+
+      // Memperbarui state apiData dengan newData
+      setApiData(newData);
+console.log("coba set",parameterChecks)
       setDataTrackCheckings(
-        transformedData.ParameterChecks.map((check) => ({
-          PCId: check.Id,
-          Result: "",
-        }))
+        response.data.DataReferenceParameterChecks.$values.map((check) => {
+          return {
+            PCID: check.ParameterCheck.Id,
+            Result: "",
+            ErrorId: null,
+            Appove:false,
+            ApprovalId:null,
+            ApprRemaks:"",
+          };
+        })
       );
+console.log("Selesai set")
+
     } catch (error) {
       toast.error(`Error fetching data: ${error.message}`, {});
     }
   };
+
   const fetchDataWoParam = async (id) => {
     try {
-      const response =await axios.get(`${api}/api/Wo/${id}`)
-      
+      const response = await axios.get(`${api}/api/Wo/${id}`);
+
       setSelectedData(response.data);
     } catch (error) {
       toast.error(`Error fetching data: ${error.message}`, {});
     }
   };
-  ;
   const handleKeyPressProduct = (e) => {
     if (e.key === "Enter") {
       handleSearchProduct();
@@ -218,24 +280,6 @@ export default function Products() {
   };
   const handleChangeProduct = (e) => {
     setQuery(e.target.value);
-  };
-
-  const transformData = (data) => {
-    // Access the relevant data structure
-    const referenceData = data.$values[0].DataReference; // Assuming first item has DataReference
-    const parameterChecks = data.$values.map((item) => ({
-      Id: item.Id,
-      Description: item.Description,
-      Order: item.Order,
-    }));
-
-    // Create the desired transformed object
-    const transformed = {
-      ...referenceData, // Spread properties from referenceData
-      ParameterChecks: parameterChecks, // Add the array of parameter checks
-    };
-
-    return transformed;
   };
 
   const handleSubmit = async () => {
@@ -253,8 +297,12 @@ export default function Products() {
       TrackingResult: allPassed ? "PASS" : "FAIL",
       TrackingStatus: allPassed ? "PASS" : "FAIL",
       DataTrackCheckings: dataTrackCheckings.map((item, index) => ({
-        PCId: item.PCId,
+        PCID: item.PCID,
         DTCValue: item.Result,
+        ErrorId: item.ErrorId,
+        Appove:item.Appove,
+        ApprovalId:item.ApprovalId,
+        ApprRemaks:item.ApprRemaks,
         DTCisDeleted: false,
         ImageDataChecks: parameterGalleries[index]
           ? parameterGalleries[index].map((imageUrl) => ({
@@ -279,18 +327,18 @@ export default function Products() {
       if (response.status === 200) {
         // Penanganan sukses
         toast.success("Data berhasil dikirim ke server");
-        fetchDataWoParam(selectedData.Id)
+        fetchDataWoParam(selectedData.Id);
         setShowModal(false);
         fetchDataTracks();
         setOpenCollapse({});
         // Lakukan tindakan lain yang diperlukan setelah berhasil
       } else {
         // Penanganan error
-        toast.error("Error saat mengirim data ke server");
+        toast.error("Error saat mengirim data ke server 1");
         // Lakukan tindakan lain yang diperlukan saat terjadi error
       }
     } catch (error) {
-      toast.error("Error saat mengirim data ke server:", error);
+      toast.error("Error saat mengirim data ke server:", error.message);
       // Lakukan tindakan lain yang diperlukan saat terjadi error
     }
   };
@@ -332,7 +380,7 @@ export default function Products() {
       TrackingResult: allPassed ? "PASS" : "FAIL",
       TrackingStatus: allPassed ? "PASS" : "FAIL",
       DataTrackCheckings: dataTrackCheckings.map((item, index) => ({
-        PCId: item.PCId,
+        PCId: item.PCID,
         DTCValue: item.Result,
         DTCisDeleted: false,
         ImageDataChecks: parameterGalleries[index].map((imageUrl) => ({
@@ -413,6 +461,7 @@ export default function Products() {
     }
   };
   const processPSN = async () => {
+    setApiData(null);
     setIsLoading(true);
     if (await verifyData()) {
       try {
@@ -440,8 +489,8 @@ export default function Products() {
           setErrorProduct("");
           setIsLoading(false); // Set isLoading menjadi false setelah selesai fetching
           setParameterGalleries(
-            apiData && apiData.ParameterChecks
-              ? apiData.ParameterChecks.map(() => [])
+            apiData && apiData.ParameterCheck
+              ? apiData.ParameterCheck.map(() => [])
               : []
           );
           setEditingData(null);
@@ -513,22 +562,27 @@ export default function Products() {
   }, [randomNumber]);
 
   useEffect(() => {
-    setParameterGalleries(
-      apiData && apiData.ParameterChecks
-        ? apiData.ParameterChecks.map((parameter) => parameter.ImageDataChecks)
-        : []
-    );
+    if (apiData && Array.isArray(apiData.ParameterCheck)) {
+      setParameterGalleries(
+        apiData.ParameterCheck.map((parameter) => parameter.ImageDataChecks)
+      );
+    } else {
+      setParameterGalleries([]);
+    }
   }, [apiData]);
   useEffect(() => {
     fetchDataTracks();
-    fetchDataWoParam(selectedData.Id)
+    fetchDataWoParam(selectedData.Id);
   }, []);
   // const focusInput = () => {
   //   inputPSN.current.focus();
   // };
+
   return (
     <div className="z-0 ">
-      <h2>Product Check</h2>
+      <div className="flex items-center gap-3 mb-2 bg-green-500 text-white  pl-2 rounded-2xl">
+        <span className="text-2xl py-2">Product Check</span>
+      </div>
       {isLoading && <div className="loading-animation">Loading...</div>}
       {selectedData && (
         <div className="mb-4">
@@ -693,135 +747,404 @@ export default function Products() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75">
-          <div className="bg-white p-8 rounded-lg shadow-md overflow-auto max-h-full w-4/5">
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-500 bg-opacity-50 z-50 ">
+          <div className="bg-white p-6  shadow-lg w-full relative rounded-xl m-4">
             <h2 className="text-lg font-bold mb-4">
               {editingData
                 ? "Edit Data PSN : " + psnEdit
                 : "Cek PSN : " + psnBarcode}
             </h2>
             {error && <p className="text-red-500">{error}</p>}
-            <div className="flex flex-wrap">
-              {apiData &&
-                apiData.ParameterChecks.map((check, index) => (
-                  <div key={check.Id} className="flex items-center mb-2">
-                    <label className="w-64 font-semibold">
+            {apiData &&
+              apiData.ParameterCheck &&
+              Array.isArray(apiData.ParameterCheck) &&
+              apiData.ParameterCheck.map((check, index) => {
+                return (
+                  <div
+                    key={index}
+                    className="flex flex-col md:flex-row items-center mb-4 space-y-2 md:space-y-0 md:space-x-4"
+                  >
+                    <label className="w-1/9 font-medium">
                       {check.Description}
                     </label>
-                    <div className="flex items-center">
+                    <select
+                      className="w-1/9 p-2 border border-gray-300 rounded"
+                      value={
+                        dataTrackCheckings.find(
+                          (item) => item.PCID === check.Id
+                        )?.Result || ""
+                      }
+                      onChange={(e) => {
+                        const newDataTrackCheckings = dataTrackCheckings.map(
+                          (item) => {
+                            const isMatchingId = _.isEqual(item.PCID, check.Id);
+                            return isMatchingId
+                              ? { ...item, Result: e.target.value }
+                              : item;
+                          }
+                        );
+                        setDataTrackCheckings(newDataTrackCheckings);
+                      }}
+                    >
+                      <option value="">Pilih Hasil</option>
+                      <option value="Pass">Pass</option>
+                      <option value="Fail">Fail</option>
+                    </select>
+                    {/* Hidden select element */}
+                    <div className="w-1/9">
                       <select
-                        className="border border-gray-300 rounded p-2"
+                        className="w-1/9 p-2 border border-gray-300 rounded"
                         value={
                           dataTrackCheckings.find(
-                            (item) => item.PCId === check.Id
-                          )?.Result || ""
+                            (item) => item.PCID === check.Id
+                          )?.ErrorId || ""
                         }
                         onChange={(e) => {
                           const newDataTrackCheckings = dataTrackCheckings.map(
-                            (item) =>
-                              item.PCId === check.Id
-                                ? { ...item, Result: e.target.value }
-                                : item
+                            (item) => {
+                              const isMatchingId = _.isEqual(
+                                item.PCID,
+                                check.Id
+                              );
+                              return isMatchingId
+                                ? { ...item, ErrorId: e.target.value }
+                                : item;
+                            }
                           );
                           setDataTrackCheckings(newDataTrackCheckings);
                         }}
+                        style={{
+                          visibility:
+                            dataTrackCheckings.find(
+                              (item) => item.PCID === check.Id
+                            )?.Result === "Pass" ||
+                            !dataTrackCheckings.find(
+                              (item) => item.PCID === check.Id
+                            )?.Result
+                              ? "hidden"
+                              : "visible",
+                          opacity:
+                            dataTrackCheckings.find(
+                              (item) => item.PCID === check.Id
+                            )?.Result === "Pass" ||
+                            !dataTrackCheckings.find(
+                              (item) => item.PCID === check.Id
+                            )?.Result
+                              ? 0
+                              : 1,
+                        }}
                       >
-                        <option value="">Pilih Hasil</option>
-                        <option value="Pass">Pass</option>
-                        <option value="Fail">Fail</option>
+                        <option value="">Pilih Error Message</option>
+                        {editingData
+                          ? check.selectErrorMessage.map(
+                              (errorMessage, index) =>
+                                // Periksa apakah errorMessage.ErrorMessage tidak null atau undefined
+                                errorMessage.ErrorMessage && (
+                                  <option
+                                    key={index}
+                                    value={errorMessage.ErrorMessage.Id}
+                                  >
+                                    {errorMessage.ErrorMessage.ErrorCode +
+                                      "=>" +
+                                      errorMessage.ErrorMessage
+                                        .ErrorDescription}
+                                  </option>
+                                )
+                            )
+                          : // Logika baru untuk kasus ketika editingData bernilai false
+                            check.ParameterCheckErrorMessages.$values.map(
+                              (errorMessage, index) => (
+                                <option
+                                  key={index}
+                                  value={errorMessage.ErrorMessage.Id}
+                                >
+                                  {errorMessage.ErrorMessage.ErrorCode +
+                                    "=>" +
+                                    errorMessage.ErrorMessage.ErrorDescription}
+                                </option>
+                              )
+                            )}
                       </select>
-                      <div className="mx-2">
-                        {parameterGalleries[index] &&
-                          parameterGalleries[index].length > 0 && (
-                            <div className="mt-4 w-full">
-                              <div className="relative overflow-hidden rounded-md">
-                                <div className="flex transition-transform duration-300 ease-in-out">
-                                  {parameterGalleries[index].map(
-                                    (imageUrl, imgIndex) => (
-                                      <div
-                                        key={imgIndex}
-                                        className="flex-shrink-0 w-32 h-32 relative"
-                                      >
-                                        <img
-                                          src={imageUrl}
-                                          alt={`Gallery Image ${imgIndex}`}
-                                          className="w-full h-full rounded-md object-cover border border-gray-200"
-                                          onClick={() =>
-                                            handleImageGaleyClick(
-                                              parameterGalleries[index].map(
-                                                (url, idx) => ({
-                                                  url,
-                                                  alt: `Gallery Image ${idx}`,
-                                                })
-                                              ),
-                                              imgIndex
-                                            )
-                                          }
-                                        />
-                                        <button
-                                          name="buttonDelete"
-                                          className="absolute top-0 right-0 mt-1 mr-1 p-1 bg-red-500 text-white rounded-full text-sm focus:outline-none"
-                                          onClick={() =>
-                                            removeImageFromGallery(
-                                              index,
-                                              imgIndex
-                                            )
-                                          }
-                                        >
-                                          X
-                                        </button>
-                                      </div>
-                                    )
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                      </div>
-                      {showModalGalery && selectedImages.length > 0 && (
-                        <ImageModal
-                          images={selectedImages}
-                          onClose={handleCloseModalGalery}
+                    </div>
+                    <div className="w-1/9">
+                      {check.ImageSampleUrl && (
+                        <img
+                          src={`${api}${check.ImageSampleUrl}`}
+                          alt="Sample Image"
+                          className="w-32 h-16"
+                          onClick={() => {
+                            setEnlargedImage(`${api}${check.ImageSampleUrl}`);
+                            setShowEnlargedModal(true);
+                          }}
                         />
                       )}
-                      <div className="mt-1 flex items-center">
-                        <button
-                          htmlFor="fileInput"
-                          className="w-12 h-12 bg-blue-500 text-white rounded-md  items-cente"
-                          onClick={() =>
-                            document.getElementById("fileInput").click()
-                          }
-                        >
-                          <GrGallery className="mx-auto" />
-                        </button>
-                        <input
-                          id="fileInput"
-                          type="file"
-                          accept="image/*"
-                          style={{ display: "none" }}
-                          onChange={(e) => handleFileUpload(e, index)}
-                        />
-                        <button
-                          onClick={() => handleCameraCapture(index)}
-                          className="w-12 h-12 bg-green-500 text-white rounded-md  items-center"
-                        >
-                          <FaCamera className="mx-auto" />
-                        </button>
+                    </div>
+                    
+                   
+
+                    <div className="w-3/9">
+                      <div className="flex items-center">
+                        <div className="mt-1 flex items-center">
+                          <button
+                            htmlFor="fileInput"
+                            className="w-12 h-12 bg-blue-500 text-white rounded-md  items-cente"
+                            onClick={() =>
+                              document
+                                .getElementById(`fileInput-${index}`)
+                                .click()
+                            }
+                          >
+                            <GrGallery className="mx-auto" />
+                          </button>
+                          <input
+                            id={`fileInput-${index}`}
+                            type="file"
+                            accept="image/*"
+                            style={{ display: "none" }}
+                            onChange={(e) => handleFileUpload(e, index)}
+                          />
+                          <button
+                            onClick={() => handleCameraCapture(index)}
+                            className="w-12 h-12 bg-green-500 text-white rounded-md  items-center"
+                          >
+                            <FaCamera className="mx-auto" />
+                          </button>
+                        </div>
+                        <div className="mt-4">
+                          <Webcam
+                            audio={false}
+                            ref={webcamRef}
+                            screenshotFormat="image/jpeg"
+                            className="w-44 h-28 " // Atur ukuran preview webcam di sini
+                          />
+                        </div>
+                        <div className="mx-2">
+                          {parameterGalleries[index] &&
+                            parameterGalleries[index].length > 0 && (
+                              <div className="mt-4 w-full">
+                                <div className="relative overflow-hidden rounded-md">
+                                  <div className="flex transition-transform duration-300 ease-in-out">
+                                    {parameterGalleries[index].map(
+                                      (imageUrl, imgIndex) => (
+                                        <div
+                                          key={imgIndex}
+                                          className="flex-shrink-0 w-24 h-24 relative"
+                                        >
+                                          <img
+                                            src={imageUrl}
+                                            alt={`Gallery Image ${imgIndex}`}
+                                            className="w-full h-full rounded-md object-cover border border-gray-200"
+                                            onClick={() =>
+                                              handleImageGaleyClick(
+                                                parameterGalleries[index].map(
+                                                  (url, idx) => ({
+                                                    url,
+                                                    alt: `Gallery Image ${idx}`,
+                                                  })
+                                                ),
+                                                imgIndex
+                                              )
+                                            }
+                                          />
+                                          <button
+                                            name="buttonDelete"
+                                            className="absolute top-0 right-0 mt-1 mr-1 p-1 bg-red-500 text-white rounded-full text-sm focus:outline-none"
+                                            onClick={() =>
+                                              removeImageFromGallery(
+                                                index,
+                                                imgIndex
+                                              )
+                                            }
+                                          >
+                                            X
+                                          </button>
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                        </div>
+                        {showModalGalery && selectedImages.length > 0 && (
+                          <ImageModal
+                            images={selectedImages}
+                            onClose={handleCloseModalGalery}
+                          />
+                        )}
                       </div>
-                      <div className="mt-4">
-                        <Webcam
-                          audio={false}
-                          ref={webcamRef}
-                          screenshotFormat="image/jpeg"
-                          className="w-44 h-28 " // Atur ukuran preview webcam di sini
+                      
+                    </div>
+                    <div className="w-1/9">
+                      {/* Checkbox */}
+                      <div
+                        className={`flex items-center `}
+                        style={{
+                          visibility:
+                            dataTrackCheckings.find(
+                              (item) => item.PCID === check.Id
+                            )?.Result === "Pass" ||
+                            (!dataTrackCheckings.find(
+                              (item) => item.PCID === check.Id
+                            )?.Result &&
+                              ["Admin", "staf", "Inspektor"].includes(
+                                localStorage.getItem("Role")
+                              ))
+                              ? "hidden"
+                              : "visible",
+                          opacity:
+                            dataTrackCheckings.find(
+                              (item) => item.PCID === check.Id
+                            )?.Result === "Pass" ||
+                            (!dataTrackCheckings.find(
+                              (item) => item.PCID === check.Id
+                            )?.Result &&
+                              ["Admin", "staf", "Inspektor"].includes(
+                                localStorage.getItem("Role")
+                              ))
+                              ? 0
+                              : 1,
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          id={`checkbox-${index}`}
+                          checked={
+                            dataTrackCheckings.find(
+                              (item) => item.PCID === check.Id
+                            )?.Approve || false
+                          }
+                           
+                          onChange={(e) => {
+                            const newDataTrackCheckings = dataTrackCheckings.map((item) => {
+                              if (item.PCID === check.Id) {
+                                console.log("Updating Approve for", check.Id, "to", e.target.checked);
+                                return { ...item, Approve: e.target.checked };
+                              }
+                              return item;
+                            });
+                            console.log("New DataTrackCheckings:", newDataTrackCheckings);
+                            setDataTrackCheckings(newDataTrackCheckings);
+                          }}
+                          
+                          className="form-checkbox h-5 w-5 text-indigo-600 transition duration-150 ease-in-out"
                         />
+                        <label
+                          htmlFor={`checkbox-${index}`}
+                          className="ml-2 block text-sm leading-5 text-gray-900"
+                        >
+                          Approve
+                        </label>
                       </div>
                     </div>
-                  </div>
-                ))}
-            </div>
+                    <div className="w-1/9">
+  {/* Input Area */}
+  <div
+    className="transition duration-300"
+    style={{
+      visibility: (() => {
+        // Log seluruh dataTrackCheckings
+        console.log("dataTrackCheckings:", dataTrackCheckings);
 
-            <div className="flex justify-between">
+        // Log nilai check.Id
+        console.log("check.Id:", check.Id);
+
+        // Cari item yang sesuai
+        const dataItem = dataTrackCheckings.find((item) => item.PCID === check.Id);
+
+        // Log item yang ditemukan
+        console.log("dataItem:", dataItem);
+
+        // Ambil nilai Approve
+        const approvalStatus = dataItem?.Approve;
+
+        // Log nilai Approve
+        console.log("Approve:", approvalStatus);
+
+        // Ambil dan log Role
+        const userRole = localStorage.getItem("Role");
+        console.log("Role:", userRole);
+
+        // Kembalikan nilai visibility
+        return approvalStatus === true && ["Admin", "staf", "Inspektor"].includes(userRole)
+          ? "visible"
+          : "hidden";
+      })(),
+      opacity: (() => {
+        // Log seluruh dataTrackCheckings
+        console.log("dataTrackCheckings:", dataTrackCheckings);
+
+        // Log nilai check.Id
+        console.log("check.Id:", check.Id);
+
+        // Cari item yang sesuai
+        const dataItem = dataTrackCheckings.find((item) => item.PCID === check.Id);
+
+        // Log item yang ditemukan
+        console.log("dataItem:", dataItem);
+
+        // Ambil nilai Approve
+        const approvalStatus = dataItem?.Approve;
+
+        // Log nilai Approve
+        console.log("Approve:", approvalStatus);
+
+        // Ambil dan log Role
+        const userRole = localStorage.getItem("Role");
+        console.log("Role:", userRole);
+
+        // Kembalikan nilai opacity
+        return approvalStatus === true && ["Admin", "staf", "Inspektor"].includes(userRole)
+          ? 1
+          : 0;
+      })(),
+    }}
+  >
+    <textarea
+      className="w-full p-2 border border-gray-300 rounded"
+      value={inputValues[index] || ""}
+      onChange={(e) => handleInputChange(index, e.target.value)}
+      placeholder="Masukkan keterangan di sini"
+    />
+  </div>
+</div>
+
+
+                    
+                  </div>
+                  
+                );
+              })}
+            {showEnlargedModal && (
+              <div className="fixed inset-0 flex items-center justify-center  z-max bg-gray-800 bg-opacity-75">
+                <div className="relative">
+                  <img
+                    src={enlargedImage}
+                    alt="Enlarged"
+                    className="max-w-full max-h-screen"
+                  />
+                  <button
+                    className="absolute top-0 right-0 m-4 text-white hover:text-gray-300 bg-red-700 rounded-full"
+                    onClick={() => setShowEnlargedModal(false)}
+                  >
+                    <svg
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+            <div className="flex justify-between items-end mt-5">
               <button
                 type="submit"
                 onClick={editingData ? handleUpdateData : handleSubmit}
@@ -829,7 +1152,6 @@ export default function Products() {
               >
                 {editingData ? "Update" : "Save"}
               </button>
-
               <button
                 type="button"
                 onClick={closeModal}
@@ -841,8 +1163,8 @@ export default function Products() {
           </div>
         </div>
       )}
+
       <div className="container mx-auto bg-gray-200 rounded-lg p-2">
-        <h1 className="text-2xl font-bold ">Data Track</h1>
         <div className="relative flex-grow  sm:w-3/4 md:w-auto mb-2">
           <form
             className="max-w-lg mx-auto md:flex md:items-center md:flex-row-reverse items-center "
@@ -965,42 +1287,68 @@ export default function Products() {
                           </h2>
                           <table className="w-full ">
                             <tbody className="bg-slate-100">
-                              {detailDataMap[track.Id].map((detail, index) => (
-                                <tr
-                                  key={index}
-                                  className={`border-b  ${
-                                    detail.DTCValue === "Pass" ||
-                                    detail.DTCValue === "PASS"
-                                      ? "bg-white"
-                                      : "bg-red-100"
-                                  } rounded-full `}
-                                >
-                                  <td className="w-auto">
-                                    {detail.ParameterCheck.Description}
-                                  </td>
-                                  <td className="">{detail.DTCValue}</td>
-                                  <td className="">
-                                    <div className="flex gap-2">
-                                      {detail.ImageDataChecks.$values.map(
-                                        (image, imageIndex) => (
-                                          <img
-                                            key={imageIndex}
-                                            src={`${api}${image.ImageUrl}`}
-                                            alt={`Image ${imageIndex + 1}`}
-                                            className="w-12 h-12 object-cover rounded cursor-pointer"
-                                            onClick={() =>
-                                              handleImageClick(
-                                                detail.ImageDataChecks.$values,
-                                                imageIndex
-                                              )
-                                            }
-                                          />
-                                        )
-                                      )}
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))}
+                              {detailDataMap[track.Id].map((detail, index) => {
+                                return (
+                                  <tr
+                                    key={index}
+                                    className={`border-b  ${
+                                      detail.DTCValue === "Pass" ||
+                                      detail.DTCValue === "PASS"
+                                        ? "bg-white"
+                                        : "bg-red-100"
+                                    } rounded-full `}
+                                  >
+                                    <td className="w-auto">
+                                      {detail.ParameterCheck.Description}
+                                    </td>
+                                    <td className="">{detail.DTCValue}</td>
+                                    <td className="">
+                                      {detail.ParameterCheck
+                                        .ParameterCheckErrorMessages &&
+                                      detail.ParameterCheck
+                                        .ParameterCheckErrorMessages.$values
+                                        .length > 0
+                                        ? detail.ParameterCheck.ParameterCheckErrorMessages.$values
+                                            .map((error) => {
+                                              const errorMessage =
+                                                error.ErrorMessage;
+                                              if (
+                                                errorMessage &&
+                                                errorMessage.ErrorCode &&
+                                                errorMessage.ErrorDescription
+                                              ) {
+                                                return `${errorMessage.ErrorCode} => ${errorMessage.ErrorDescription}`;
+                                              }
+                                              return null; // Mengembalikan null jika kondisi tidak terpenuhi
+                                            })
+                                            .filter((value) => value !== null) // Menyaring nilai null
+                                            .join(", ")
+                                        : "-"}
+                                    </td>
+                                    <td className="">
+                                      <div className="flex gap-2">
+                                        {detail.ImageDataChecks.$values.map(
+                                          (image, imageIndex) => (
+                                            <img
+                                              key={imageIndex}
+                                              src={`${api}${image.ImageUrl}`}
+                                              alt={`Image ${imageIndex + 1}`}
+                                              className="w-12 h-12 object-cover rounded cursor-pointer"
+                                              onClick={() =>
+                                                handleImageClick(
+                                                  detail.ImageDataChecks
+                                                    .$values,
+                                                  imageIndex
+                                                )
+                                              }
+                                            />
+                                          )
+                                        )}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>

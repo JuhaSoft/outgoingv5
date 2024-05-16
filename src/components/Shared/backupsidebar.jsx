@@ -81,7 +81,7 @@ export default function Sidebar() {
       if (timeToLogout > 0) {
         setTimeout(handleLogout, timeToLogout * 1000); // Logout after timeToLogout seconds
       } else {
-        console.log("AutoLogut");
+         
         handleLogout(); // Logout immediately if token is already expired
       }
     }

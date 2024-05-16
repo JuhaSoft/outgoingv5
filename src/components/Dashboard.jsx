@@ -97,7 +97,9 @@ export default function Dashboard() {
   };
   return (
     <div className="">
-      <h2>Dashboard</h2>
+      <div className="flex items-center gap-3 mb-2 bg-green-500 text-white  pl-2 rounded-2xl">
+         <span className="text-2xl py-2">Data Track</span>
+      </div>
       <form
         className="max-w-lg mx-auto md:flex md:items-center md:flex-row-reverse "
         onSubmit={handleSearch}

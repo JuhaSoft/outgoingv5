@@ -242,7 +242,7 @@ export default function Parameters() {
     let currentPage = data.selected + 1;
     SetCurrentPage(currentPage);
   };
-console.log('openDlg',openDlg)
+ 
   useEffect(() => {
     fetchData("Change", currentPage, pageSize);
   }, [pageSize, currentPage, saveData, showModal, openDlg]);
@@ -381,8 +381,7 @@ console.log('openDlg',openDlg)
     }
   };
   const confirmDelete = (Gid, id) => {
-    console.log("masuk comfirm delete",Gid);
-    console.log("masuk comfirm delete2",id);
+    
     setidDelete(Gid);
     setStationIDDelete(id);
     setOpenDlg(true);
@@ -418,7 +417,6 @@ console.log('openDlg',openDlg)
       toast.error("Error fetching data:", error);
     }
   };
-  console.log("dataProduct", dataProduct);
   return (
     <>
       <div className="z-0 sm:w-full w-auto lg:w-3/4">

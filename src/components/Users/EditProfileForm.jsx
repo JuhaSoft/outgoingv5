@@ -10,6 +10,7 @@ const EditProfileForm = () => {
   };
   const api = appConfig.APIHOST;
   const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [image, setImage] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
@@ -26,8 +27,9 @@ const EditProfileForm = () => {
           }
         };
         const response = await axios.get(apiUrl, config);
-        const { DisplayName, UserName, Image } = response.data;
+        const { DisplayName, UserName, Image,Email } = response.data;
         setDisplayName(DisplayName);
+        setEmail(Email);
         setUserName(UserName);
         if (Image) {
           // Combine server URL with Image path
@@ -52,14 +54,22 @@ const EditProfileForm = () => {
   };
 
   const { getRootProps, getInputProps } = useDropzone({ onDrop, accept: 'image/*', multiple: false });
-
+  const isValidEmail = (email) => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email);
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isValidEmail(email)) {
+      setErrorMessage("Email tidak valid");
+      return;
+    }
     try {
       const apiUrl = `${api}/api/Account/updateProfile`;
       const formData = new FormData();
       formData.append('DisplayName', displayName);
       formData.append('UserName', userName);
+      formData.append('Email', email);
       if (image) {
         formData.append('Image', image);
       }
@@ -105,6 +115,20 @@ toast.success("Updated profile succes")
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Display Name"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          />
+        </div>
+        <div className="mb-4">
+          <label htmlFor="displayName" className="block text-gray-700 text-sm font-bold mb-2">Display Name</label>
+          <input
+            type="text"
+            id="email"
+            name="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+            pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+            title="Masukkan email yang valid (contoh: gugai.way@gugai.com)"
             className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
           />
         </div>

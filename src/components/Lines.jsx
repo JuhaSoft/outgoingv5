@@ -223,13 +223,10 @@ export default function Lines() {
     }
   };
   const handleSearch = (event) => {
-    // console.log("test");
     event.preventDefault();
 
     fetchData("handleSearch"); // Panggil fungsi fetchData dengan parameter default
-    // Untuk mengomentari kode, gunakan shortcut berikut:
-    // - Di Windows/Linux: Ctrl + /
-    // - Di MacOS: Cmd + /
+
   };
 
   const handleDropdownToggle = () => {

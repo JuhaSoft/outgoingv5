@@ -8,19 +8,19 @@
   {
     "id": 2,
     "label": "Data",
-    "icon": "FiHome",
-    "path": "/"
+    "icon": "MdOutlineDataset",
+    "path": "/Datas"
   },
   {
     "id": 3,
     "label": "Order",
-    "icon": "FiHome",
+    "icon": "BiPurchaseTagAlt",
     "path": "/orders"
   },
   {
     "id": 4,
     "label": "Process",
-    "icon": "FiHome",
+    "icon": "FcProcess",
     "path": "/products"
   },
   {

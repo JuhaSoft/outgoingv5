@@ -105,8 +105,7 @@ export default function Errors() {
   };
 
   const handleDelete = async (Id) => {
-    console.log("Coba delete");
-    console.log(`${api}/api/ErrorMessage/${Id}`);
+    
     try {
       await axios.delete(`${api}/api/ErrorMessage/${Id}`);
       // Tampilkan notifikasi sukses
@@ -226,7 +225,7 @@ export default function Errors() {
     }
   };
   const handleSearch = (event) => {
-    // console.log("test");
+    
     event.preventDefault();
 
     fetchData("handleSearch"); // Panggil fungsi fetchData dengan parameter default

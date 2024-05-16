@@ -24,7 +24,7 @@ const Table = ({ data, onEdit, onDelete,onImageClick  }) => {
       setExpandedRows([...expandedRows, id]);
     }
   };
-console.log('data',data)
+ 
   return (
     <table className="w-full table-auto">
       <thead>
@@ -36,7 +36,7 @@ console.log('data',data)
       </thead>
       <tbody>
       {data.map((item) => {
-  console.log('item',item); // Pindahkan ini ke dalam blok fungsi map
+   
   return (
             
           <React.Fragment key={item.Id}>
