@@ -48,7 +48,54 @@ export default function Products() {
   const [enlargedImage, setEnlargedImage] = useState(null);
   const [checkboxStates, setCheckboxStates] = useState([]);
   const [inputValues, setInputValues] = useState([]);
+  const [topError, setTopError] = useState([]);
+  const [optionEdit, setOptionEdit] = useState([]);
+  // image
+  const [zoom, setZoom] = useState(1);
+  const [isPanning, setIsPanning] = useState(false);
+  const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const [startPoint, setStartPoint] = useState({ x: 0, y: 0 });
+  const [isToastDisplayed, setIsToastDisplayed] = useState(false);
+  const handleMouseDown = (e) => {
+    setIsPanning(true);
+    setStartPoint({ x: e.clientX - translate.x, y: e.clientY - translate.y });
+  };
 
+  const handleMouseMove = (e) => {
+    if (!isPanning) return;
+    setTranslate({
+      x: e.clientX - startPoint.x,
+      y: e.clientY - startPoint.y,
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsPanning(false);
+  };
+
+  const handleMouseLeave = () => {
+    setIsPanning(false);
+  };
+
+  const handleZoomIn = () => {
+    const newZoom = zoom * 1.2;
+    setZoom(newZoom);
+    setTranslate((prev) => ({
+      x: prev.x * 1.2,
+      y: prev.y * 1.2,
+    }));
+  };
+
+  const handleZoomOut = () => {
+    const newZoom = zoom / 1.2;
+    setZoom(newZoom);
+    setTranslate((prev) => ({
+      x: prev.x / 1.2,
+      y: prev.y / 1.2,
+    }));
+  };
+
+  // <==================>
   const handleCheckboxChange = (index, checked) => {
     setCheckboxStates((prevStates) => {
       const newStates = [...prevStates];
@@ -153,21 +200,21 @@ export default function Products() {
       [id]: !prevOpenCollapse[id],
     }));
     fetchDetailData(id);
+   
+    
   };
   const handleEditClick = async (id) => {
     try {
-      const response = await axios.get(`${api}/api/DataTracks/${id}`);
+      const response = await axios.get(
+        `https://localhost:5001/api/DataTracks/${id}`
+      );
       const trackData = response.data;
-
-      setPsnEdit(response.data.TrackPSN);
-
       const detailDataResponse = await axios.get(
-        `${api}/api/DataTrackChecks/${id}`
+        `https://localhost:5001/api/DataTrackChecks/${id}`
       );
       const detailData = detailDataResponse.data.$values;
-
-      // Mengisi data detail ke apiData.ParameterChecks
       const parameterCheck = detailData.map((item) => {
+     
         return {
           Id: item.ParameterCheck.Id,
           Description: item.ParameterCheck.Description,
@@ -176,12 +223,11 @@ export default function Products() {
           ImageDataChecks: item.ImageDataChecks.$values.map(
             (image) => `${api}${image.ImageUrl}`
           ),
-          ParameterCheckErrorMessages: item.ErrorMessage,
+          ParameterCheckErrorMessages: item.ErrorTracks,
           selectErrorMessage:
             item.ParameterCheck.ParameterCheckErrorMessages.$values,
         };
       });
-
       if (apiData) {
         setApiData((prevData) => ({
           ...prevData,
@@ -191,25 +237,30 @@ export default function Products() {
         setApiData({ ParameterCheck: parameterCheck });
       }
       setDataTrackCheckings(
-        parameterCheck.map((check) => ({
-          PCID: check.Id,
-          Result: check.Result,
-          ErrorId: check.ErrorId,
-          Appove:check.Appove,
-            ApprovalId:check.ApprovalId,
-            ApprRemaks:check.ApprRemaks,
-        }))
-      );
+        detailDataResponse.data.$values.map((check, index) => {
+          // Fungsi untuk normalisasi GUID
+          const normalizeGuid = (guid) => {
+            return guid === "00000000-0000-0000-0000-000000000000" ? "" : guid;
+          };
 
-      // Mengisi data detail ke dataTrackCheckings
-      const newDataTrackCheckings = parameterCheck.map(
-        ({ Id, Result, ErrorId }) => ({
-          PCID: Id,
-          Result,
-          ErrorId,
-          Appove:false,
-          ApprovalId:null,
-          ApprRemaks:"",
+          return {
+            PCID: normalizeGuid(check.Id),
+            Result: check.Result,
+            ErrorId: normalizeGuid(check.ErrorId),
+            Approve: check.Approve,
+            ApprovalId: normalizeGuid(check.ApprovalId),
+            ApprRemaks: check.ApprRemaks,
+          };
+        })
+      );
+      const newDataTrackCheckings = detailDataResponse.data.$values.map(
+        ({ PCID, DTCValue, ErrorId, Approve, ApprovalId, ApprRemaks }) => ({
+          PCID: PCID,
+          Result: DTCValue,
+          ErrorId: ErrorId,
+          Approve: Approve,
+          ApprovalId: ApprovalId,
+          ApprRemaks: ApprRemaks,
         })
       );
       setDataTrackCheckings(newDataTrackCheckings);
@@ -219,6 +270,7 @@ export default function Products() {
     } catch (error) {
       toast.error("Error fetching data:", error);
     }
+     
   };
   const closeModal = () => {
     setShowModal(false);
@@ -234,7 +286,7 @@ export default function Products() {
 
       // Membuat objek baru untuk menyimpan ParameterCheck
       const newData = { ParameterCheck: [] };
-
+      setTopError(response.data.TopErrors.$values);
       // Menambahkan ParameterCheck ke dalam newData.ParameterCheck
       parameterChecks.forEach((item) => {
         if (item.ParameterCheck) {
@@ -244,21 +296,19 @@ export default function Products() {
 
       // Memperbarui state apiData dengan newData
       setApiData(newData);
-console.log("coba set",parameterChecks)
+
       setDataTrackCheckings(
         response.data.DataReferenceParameterChecks.$values.map((check) => {
           return {
             PCID: check.ParameterCheck.Id,
             Result: "",
             ErrorId: null,
-            Appove:false,
-            ApprovalId:null,
-            ApprRemaks:"",
+            Approve: false,
+            ApprovalId: null,
+            ApprRemaks: "",
           };
         })
       );
-console.log("Selesai set")
-
     } catch (error) {
       toast.error(`Error fetching data: ${error.message}`, {});
     }
@@ -291,7 +341,6 @@ console.log("Selesai set")
     const allPassed = dataTrackCheckings.every(
       (item) => item.Result === "Pass" || item.Result === "PASS"
     );
-
     const updatedTrackingData = {
       ...trackingData,
       TrackingResult: allPassed ? "PASS" : "FAIL",
@@ -300,9 +349,9 @@ console.log("Selesai set")
         PCID: item.PCID,
         DTCValue: item.Result,
         ErrorId: item.ErrorId,
-        Appove:item.Appove,
-        ApprovalId:item.ApprovalId,
-        ApprRemaks:item.ApprRemaks,
+        Approve: item.Approve,
+        ApprovalId: item.ApprovalId,
+        ApprRemaks: item.ApprRemaks,
         DTCisDeleted: false,
         ImageDataChecks: parameterGalleries[index]
           ? parameterGalleries[index].map((imageUrl) => ({
@@ -311,7 +360,6 @@ console.log("Selesai set")
           : [],
       })),
     };
-
     try {
       const response = await axios.post(
         `${api}/api/DataTracks`,
@@ -375,20 +423,24 @@ console.log("Selesai set")
     const allPassed = dataTrackCheckings.every(
       (item) => item.Result === "Pass" || item.Result === "PASS"
     );
+
     const updatedData = {
       ...editingData,
       TrackingResult: allPassed ? "PASS" : "FAIL",
       TrackingStatus: allPassed ? "PASS" : "FAIL",
       DataTrackCheckings: dataTrackCheckings.map((item, index) => ({
-        PCId: item.PCID,
+        PCID: item.PCID,
         DTCValue: item.Result,
+        ErrorId: item.ErrorId,
+        Approve: item.Approve,
+        ApprovalId: item.ApprovalId,
+        ApprRemaks: item.ApprRemaks,
         DTCisDeleted: false,
         ImageDataChecks: parameterGalleries[index].map((imageUrl) => ({
           ImageUrl: imageUrl,
         })),
       })),
     };
-
     try {
       const response = await axios.put(
         `${api}/api/DataTracks/${id}`,
@@ -550,6 +602,29 @@ console.log("Selesai set")
     setSelectedImages([]);
   };
   useEffect(() => {
+    if (!showModal) {
+      setIsToastDisplayed(false);
+      toast.dismiss();
+    }
+    if (topError.length > 0 && showModal && !isToastDisplayed) {
+      toast.info(
+        <div>
+          <p>Perhatikan:</p>
+          {topError.map((item, index) => (
+            <div key={index}>
+              {index + 1}. {item.ErrorCode} - {item.ErrorDescription}
+            </div>
+          ))}
+        </div>,
+        {
+          position: "top-center", // Atur posisi ke atas tengah
+          autoClose: 60000,
+          onClose: () => setIsToastDisplayed(false), // Set isToastDisplayed to false when toast is closed
+        }
+      );
+      setIsToastDisplayed(true);
+    }
+
     if (!error && !showModal) {
       setError("");
     }
@@ -574,9 +649,6 @@ console.log("Selesai set")
     fetchDataTracks();
     fetchDataWoParam(selectedData.Id);
   }, []);
-  // const focusInput = () => {
-  //   inputPSN.current.focus();
-  // };
 
   return (
     <div className="z-0 ">
@@ -587,128 +659,79 @@ console.log("Selesai set")
       {selectedData && (
         <div className="mb-4">
           <div className="mx-auto">
-            <div className="bg-slate-200 shadow-md rounded px-2 pt-2 pb-1 mb-2 flex flex-wrap items-center justify-between">
-              <div className="flex mb-2 w-full md:w-auto md:flex-1">
-                <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
+          <label
+  className="block text-black  font-bold mb-2 bg-green-300 shadow-md rounded text-center text-lg py-1"
+>
+  Order Running
+</label>
+
+            <div className="bg-slate-200 shadow-md rounded px-2 pt-2  flex flex-wrap items-center justify-between">
+              <div className="flex  w-full md:w-auto md:flex-1">
+             
+                <div className="mr-2  md:mb-0 md:w-1/6">
+                  
                   <label
                     className="block text-gray-700 text-sm font-bold mb-2"
                     htmlFor="woNumber"
                   >
-                    WO Number
+                    WO Number : {selectedData.WoNumber}
                   </label>
-                  <input
-                    className="shadow appearance-none border rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    id="woNumber"
-                    type="text"
-                    label="WO Number"
-                    value={selectedData.WoNumber}
-                    placeholder="WO Number"
-                    readOnly
-                  />
+                   
+                   
                 </div>
-                <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
+                <div className="mr-2  md:mb-0 md:w-1/6">
                   <label
                     className="block text-gray-700 text-sm font-bold mb-2"
                     htmlFor="soNumber"
                   >
-                    SO Number
+                    SO Number : {selectedData.SONumber}
                   </label>
-                  <input
-                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    id="soNumber"
-                    type="text"
-                    label="SO Number"
-                    value={selectedData.SONumber}
-                    placeholder="SO Number"
-                    readOnly
-                  />
+                   
                 </div>
-                <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
+                <div className="mr-2  md:mb-0 md:w-1/6">
                   <label
                     className="block text-gray-700 text-sm font-bold mb-2"
                     htmlFor="reference"
                   >
-                    Reference
+                    Reference : {selectedData.WoReferenceID}
                   </label>
-                  <input
-                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    id="reference"
-                    type="text"
-                    label="Reference"
-                    value={selectedData.WoReferenceID}
-                    placeholder="Reference"
-                    readOnly
-                  />
+                   
                 </div>
-                <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
+                <div className="mr-2  md:mb-0 md:w-1/6">
                   <label
                     className="block text-gray-700 text-sm font-bold mb-2"
                     htmlFor="woQty"
                   >
-                    WO Qty
+                    WO Qty : {selectedData.WoQTY}
                   </label>
-                  <input
-                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    id="woQty"
-                    type="text"
-                    label="WO QTY"
-                    value={selectedData.WoQTY}
-                    placeholder="WO Qty"
-                    readOnly
-                  />
+                   
                 </div>
-                <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
+                <div className="mr-2  md:mb-0 md:w-1/6">
                   <label
                     className="block text-gray-700 text-sm font-bold mb-2"
                     htmlFor="qtyPass"
                   >
-                    Qty Pass
+                    Qty Pass :{selectedData.PassQTY}
                   </label>
-                  <input
-                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    id="qtyPass"
-                    type="text"
-                    label="WO QTY"
-                    value={selectedData.PassQTY}
-                    placeholder="Qty Pass"
-                    readOnly
-                  />
+                  
                 </div>
-                <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
+                <div className="mr-2  md:mb-0 md:w-1/6">
                   <label
                     className="block text-gray-700 text-sm font-bold mb-2"
                     htmlFor="qtyFail"
                   >
-                    Qty Fail
+                    Qty Fail : {selectedData.FailQTY}
                   </label>
-                  <input
-                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    id="qtyFail"
-                    type="text"
-                    label="WO QTY"
-                    value={selectedData.FailQTY}
-                    placeholder="Qty Fail"
-                    readOnly
-                  />
+                   
                 </div>
               </div>
-              <div>
-                <button
-                  // className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-4 md:mt-0 md:ml-2 "
-                  className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-4 md:mt-0 md:ml-2 ${
-                    isWoRunning ? "bg-red-500" : "bg-green-500"
-                  } text-white w-auto `}
-                  onClick={handleRunStop}
-                >
-                  {isWoRunning ? "Stop" : "Run"}
-                </button>
-              </div>
+              
             </div>
           </div>
         </div>
       )}
       <div
-        className={`w-full mx-1 mb-2 overflow-hidden rounded-lg shadow-lg bg-gray-100 ${
+        className={`w-full mx-1 mb-1 overflow-hidden rounded-lg shadow-lg bg-gray-100 ${
           isWoRunning ? "" : "hidden"
         }`}
       >
@@ -792,80 +815,81 @@ console.log("Selesai set")
                     </select>
                     {/* Hidden select element */}
                     <div className="w-1/9">
-                      <select
-                        className="w-1/9 p-2 border border-gray-300 rounded"
-                        value={
-                          dataTrackCheckings.find(
-                            (item) => item.PCID === check.Id
-                          )?.ErrorId || ""
-                        }
-                        onChange={(e) => {
-                          const newDataTrackCheckings = dataTrackCheckings.map(
-                            (item) => {
-                              const isMatchingId = _.isEqual(
-                                item.PCID,
-                                check.Id
-                              );
-                              return isMatchingId
-                                ? { ...item, ErrorId: e.target.value }
-                                : item;
-                            }
-                          );
-                          setDataTrackCheckings(newDataTrackCheckings);
-                        }}
-                        style={{
-                          visibility:
-                            dataTrackCheckings.find(
-                              (item) => item.PCID === check.Id
-                            )?.Result === "Pass" ||
-                            !dataTrackCheckings.find(
-                              (item) => item.PCID === check.Id
-                            )?.Result
-                              ? "hidden"
-                              : "visible",
-                          opacity:
-                            dataTrackCheckings.find(
-                              (item) => item.PCID === check.Id
-                            )?.Result === "Pass" ||
-                            !dataTrackCheckings.find(
-                              (item) => item.PCID === check.Id
-                            )?.Result
-                              ? 0
-                              : 1,
-                        }}
-                      >
-                        <option value="">Pilih Error Message</option>
-                        {editingData
-                          ? check.selectErrorMessage.map(
-                              (errorMessage, index) =>
-                                // Periksa apakah errorMessage.ErrorMessage tidak null atau undefined
-                                errorMessage.ErrorMessage && (
-                                  <option
-                                    key={index}
-                                    value={errorMessage.ErrorMessage.Id}
-                                  >
-                                    {errorMessage.ErrorMessage.ErrorCode +
-                                      "=>" +
-                                      errorMessage.ErrorMessage
-                                        .ErrorDescription}
-                                  </option>
-                                )
-                            )
-                          : // Logika baru untuk kasus ketika editingData bernilai false
-                            check.ParameterCheckErrorMessages.$values.map(
-                              (errorMessage, index) => (
-                                <option
-                                  key={index}
-                                  value={errorMessage.ErrorMessage.Id}
-                                >
-                                  {errorMessage.ErrorMessage.ErrorCode +
-                                    "=>" +
-                                    errorMessage.ErrorMessage.ErrorDescription}
-                                </option>
-                              )
-                            )}
-                      </select>
-                    </div>
+  <select
+    className="w-1/9 p-2 border border-gray-300 rounded"
+    value={(() => {
+      
+      const errorId = dataTrackCheckings.find(
+        (item) => item.PCID == check.Id
+      )?.ErrorId;
+      return errorId || "";
+       
+    })()}
+    onChange={(e) => {
+      const newDataTrackCheckings = dataTrackCheckings.map((item) => {
+        const isMatchingId = item.PCID == check.Id;
+
+        return isMatchingId
+          ? { ...item, ErrorId: e.target.value }
+          : item;
+      });
+      // Menambahkan console.log di sini
+      
+      setDataTrackCheckings(newDataTrackCheckings);
+    }}
+    style={{
+      visibility:
+        dataTrackCheckings.find(
+          (item) => item.PCID === check.Id
+        )?.Result === "Pass" ||
+        !dataTrackCheckings.find(
+          (item) => item.PCID === check.Id
+        )?.Result
+          ? "hidden"
+          : "visible",
+      opacity:
+        dataTrackCheckings.find(
+          (item) => item.PCID === check.Id
+        )?.Result === "Pass" ||
+        !dataTrackCheckings.find(
+          (item) => item.PCID === check.Id
+        )?.Result
+          ? 0
+          : 1,
+    }}
+  >
+    <option value="">Pilih Error Message</option>
+
+{check.ParameterCheckErrorMessages.$values.map((errorMessage, index) => {
+  // Tambahkan console.log(check) di sini
+
+  if (editingData) {
+    // Logika dari kode pertama
+    return (
+      errorMessage && (
+        <option key={index} value={errorMessage.ErrorId}>
+          {errorMessage.ErrorCode + "=>" + errorMessage.ErrorDescription}
+        </option>
+      )
+    );
+  } else {
+    // Logika dari kode kedua untuk kasus ketika editingData bernilai false
+    return (
+      <option key={index} value={errorMessage.ErrorMessage.Id}>
+        {errorMessage.ErrorMessage.ErrorCode +
+          " => " +
+          errorMessage.ErrorMessage.ErrorDescription}
+      </option>
+    );
+  }
+  return null;
+})}
+
+  </select>
+ 
+</div>
+
+
                     <div className="w-1/9">
                       {check.ImageSampleUrl && (
                         <img
@@ -879,8 +903,6 @@ console.log("Selesai set")
                         />
                       )}
                     </div>
-                    
-                   
 
                     <div className="w-3/9">
                       <div className="flex items-center">
@@ -973,7 +995,6 @@ console.log("Selesai set")
                           />
                         )}
                       </div>
-                      
                     </div>
                     <div className="w-1/9">
                       {/* Checkbox */}
@@ -1014,19 +1035,17 @@ console.log("Selesai set")
                               (item) => item.PCID === check.Id
                             )?.Approve || false
                           }
-                           
                           onChange={(e) => {
-                            const newDataTrackCheckings = dataTrackCheckings.map((item) => {
-                              if (item.PCID === check.Id) {
-                                console.log("Updating Approve for", check.Id, "to", e.target.checked);
-                                return { ...item, Approve: e.target.checked };
-                              }
-                              return item;
-                            });
-                            console.log("New DataTrackCheckings:", newDataTrackCheckings);
+                            const newDataTrackCheckings =
+                              dataTrackCheckings.map((item) => {
+                                if (item.PCID === check.Id) {
+                                  return { ...item, Approve: e.target.checked };
+                                }
+                                return item;
+                              });
+
                             setDataTrackCheckings(newDataTrackCheckings);
                           }}
-                          
                           className="form-checkbox h-5 w-5 text-indigo-600 transition duration-150 ease-in-out"
                         />
                         <label
@@ -1038,81 +1057,62 @@ console.log("Selesai set")
                       </div>
                     </div>
                     <div className="w-1/9">
-  {/* Input Area */}
-  <div
-    className="transition duration-300"
-    style={{
-      visibility: (() => {
-        // Log seluruh dataTrackCheckings
-        console.log("dataTrackCheckings:", dataTrackCheckings);
+                      {/* Input Area */}
+                      <div
+                        className="transition duration-300"
+                        style={{
+                          visibility: (() => {
+                            // Log seluruh dataTrackCheckings
 
-        // Log nilai check.Id
-        console.log("check.Id:", check.Id);
+                            const dataItem = dataTrackCheckings.find(
+                              (item) => item.PCID === check.Id
+                            );
+                            const approvalStatus = dataItem?.Approve;
+                            const userRole = localStorage.getItem("Role");
+                            return approvalStatus === true &&
+                              ["Admin", "staf", "Inspektor"].includes(userRole)
+                              ? "visible"
+                              : "hidden";
+                          })(),
+                          opacity: (() => {
+                            const dataItem = dataTrackCheckings.find(
+                              (item) => item.PCID === check.Id
+                            );
+                            const approvalStatus = dataItem?.Approve;
+                            const userRole = localStorage.getItem("Role");
+                            return approvalStatus === true &&
+                              ["Admin", "staf", "Inspektor"].includes(userRole)
+                              ? 1
+                              : 0;
+                          })(),
+                        }}
+                      >
+                        <textarea
+                          className="w-full p-2 border border-gray-300 rounded"
+                          value={
+                            dataTrackCheckings.find(
+                              (item) => item.PCID === check.Id
+                            )?.ApprRemaks || ""
+                          }
+                          onChange={(e) => {
+                            const newDataTrackCheckings =
+                              dataTrackCheckings.map((item) => {
+                                if (item.PCID === check.Id) {
+                                  return {
+                                    ...item,
+                                    ApprRemaks: e.target.value,
+                                  };
+                                }
+                                return item;
+                              });
 
-        // Cari item yang sesuai
-        const dataItem = dataTrackCheckings.find((item) => item.PCID === check.Id);
-
-        // Log item yang ditemukan
-        console.log("dataItem:", dataItem);
-
-        // Ambil nilai Approve
-        const approvalStatus = dataItem?.Approve;
-
-        // Log nilai Approve
-        console.log("Approve:", approvalStatus);
-
-        // Ambil dan log Role
-        const userRole = localStorage.getItem("Role");
-        console.log("Role:", userRole);
-
-        // Kembalikan nilai visibility
-        return approvalStatus === true && ["Admin", "staf", "Inspektor"].includes(userRole)
-          ? "visible"
-          : "hidden";
-      })(),
-      opacity: (() => {
-        // Log seluruh dataTrackCheckings
-        console.log("dataTrackCheckings:", dataTrackCheckings);
-
-        // Log nilai check.Id
-        console.log("check.Id:", check.Id);
-
-        // Cari item yang sesuai
-        const dataItem = dataTrackCheckings.find((item) => item.PCID === check.Id);
-
-        // Log item yang ditemukan
-        console.log("dataItem:", dataItem);
-
-        // Ambil nilai Approve
-        const approvalStatus = dataItem?.Approve;
-
-        // Log nilai Approve
-        console.log("Approve:", approvalStatus);
-
-        // Ambil dan log Role
-        const userRole = localStorage.getItem("Role");
-        console.log("Role:", userRole);
-
-        // Kembalikan nilai opacity
-        return approvalStatus === true && ["Admin", "staf", "Inspektor"].includes(userRole)
-          ? 1
-          : 0;
-      })(),
-    }}
-  >
-    <textarea
-      className="w-full p-2 border border-gray-300 rounded"
-      value={inputValues[index] || ""}
-      onChange={(e) => handleInputChange(index, e.target.value)}
-      placeholder="Masukkan keterangan di sini"
-    />
-  </div>
-</div>
-
-
-                    
+                            setDataTrackCheckings(newDataTrackCheckings);
+                          }}
+                          placeholder="Masukkan keterangan di sini"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  
                 );
               })}
             {showEnlargedModal && (
@@ -1164,7 +1164,7 @@ console.log("Selesai set")
         </div>
       )}
 
-      <div className="container mx-auto bg-gray-200 rounded-lg p-2">
+      <div className="container mx-auto bg-blue-400 rounded-lg p-2">
         <div className="relative flex-grow  sm:w-3/4 md:w-auto mb-2">
           <form
             className="max-w-lg mx-auto md:flex md:items-center md:flex-row-reverse items-center "
@@ -1227,9 +1227,11 @@ console.log("Selesai set")
                   <tr
                     className={`border-b ${
                       track.TrackingStatus === "PASS"
-                        ? "bg-white"
-                        : "bg-red-100"
-                    } rounded-full `}
+                        ? "bg-green-300"
+                        : track.ApprovalId
+                        ? "bg-yellow-200"
+                        : "bg-red-300"
+                    }`}
                   >
                     <td className="px-4 py-2 hidden sm:table-cell">
                       {track.TrackPSN}
@@ -1281,74 +1283,81 @@ console.log("Selesai set")
                   {openCollapse[track.Id] && detailDataMap[track.Id] && (
                     <tr>
                       <td colSpan="9" className="px-1 py-2">
-                        <div className="">
-                          <h2 className="text-xl font-bold">
+                        <div className="bg-blue-100 rounded-lg p-4 ml-6 shadow-md">
+                          <h2 className="text-lg font-semibold text-gray-700">
                             Detail Data for Track ID: {track.TrackPSN}
                           </h2>
                           <table className="w-full ">
-                            <tbody className="bg-slate-100">
-                              {detailDataMap[track.Id].map((detail, index) => {
+                            <tbody className="">
+                              {detailDataMap[track.Id].map((detail, index) =>{
                                 return (
-                                  <tr
-                                    key={index}
-                                    className={`border-b  ${
-                                      detail.DTCValue === "Pass" ||
-                                      detail.DTCValue === "PASS"
-                                        ? "bg-white"
-                                        : "bg-red-100"
-                                    } rounded-full `}
-                                  >
-                                    <td className="w-auto">
-                                      {detail.ParameterCheck.Description}
-                                    </td>
-                                    <td className="">{detail.DTCValue}</td>
-                                    <td className="">
-                                      {detail.ParameterCheck
-                                        .ParameterCheckErrorMessages &&
-                                      detail.ParameterCheck
-                                        .ParameterCheckErrorMessages.$values
-                                        .length > 0
-                                        ? detail.ParameterCheck.ParameterCheckErrorMessages.$values
-                                            .map((error) => {
-                                              const errorMessage =
-                                                error.ErrorMessage;
-                                              if (
-                                                errorMessage &&
-                                                errorMessage.ErrorCode &&
-                                                errorMessage.ErrorDescription
-                                              ) {
-                                                return `${errorMessage.ErrorCode} => ${errorMessage.ErrorDescription}`;
-                                              }
-                                              return null; // Mengembalikan null jika kondisi tidak terpenuhi
-                                            })
-                                            .filter((value) => value !== null) // Menyaring nilai null
-                                            .join(", ")
-                                        : "-"}
-                                    </td>
-                                    <td className="">
-                                      <div className="flex gap-2">
-                                        {detail.ImageDataChecks.$values.map(
-                                          (image, imageIndex) => (
-                                            <img
-                                              key={imageIndex}
-                                              src={`${api}${image.ImageUrl}`}
-                                              alt={`Image ${imageIndex + 1}`}
-                                              className="w-12 h-12 object-cover rounded cursor-pointer"
-                                              onClick={() =>
-                                                handleImageClick(
-                                                  detail.ImageDataChecks
-                                                    .$values,
-                                                  imageIndex
-                                                )
-                                              }
-                                            />
-                                          )
+                                <tr key={index} className={`border-b `}>
+                                  <td colSpan="6" className="px-2 ">
+                                    <div
+                                      className={`p-2 rounded-lg shadow ${
+                                        detail.DTCValue === "Pass" ||
+                                        detail.DTCValue === "PASS"
+                                          ? "bg-white"
+                                          : "bg-red-50"
+                                      }`}
+                                    >
+                                      <div className="flex flex-col sm:flex-row sm:items-center">
+                                        <div className="flex-1 text-gray-600">
+                                          {detail.ParameterCheck.Description}
+                                        </div>
+                                        <div className="flex-1 text-gray-600">
+                                          {detail.DTCValue}
+                                        </div>
+                                        <div className="flex-1 text-gray-600">
+  {detail.ErrorMessage && detail.ErrorMessage.ErrorCode && detail.ErrorMessage.ErrorDescription 
+    ? `${detail.ErrorMessage.ErrorCode} => ${detail.ErrorMessage.ErrorDescription}` 
+    : "-"}
+</div>
+                                        
+                                        <div className="flex-1 flex gap-2">
+                                          {detail.ImageDataChecks.$values.map(
+                                            (image, imageIndex) => (
+                                              <img
+                                                key={imageIndex}
+                                                src={`${api}${image.ImageUrl}`}
+                                                alt={`Image ${imageIndex + 1}`}
+                                                className="w-12 h-12 object-cover rounded border border-gray-300 cursor-pointer"
+                                                onClick={() =>
+                                                  handleImageClick(
+                                                    detail.ImageDataChecks
+                                                      .$values,
+                                                    imageIndex
+                                                  )
+                                                }
+                                              />
+                                            )
+                                          )}
+                                        </div>
+                                        {detail.Approve === true ? (
+                                          <>
+                                            <div className="flex-1 text-gray-600">
+                                              Approve by:{" "}
+                                              {detail.Approver.DisplayName}
+                                            </div>
+                                            <div className="flex-1 p-2">
+                                              <textarea
+                                                readOnly
+                                                value={detail.ApprRemaks}
+                                                className="w-full h-12 p-2 border rounded"
+                                              />
+                                            </div>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <div className="flex-1"></div>
+                                            <div className="flex-1"></div>
+                                          </>
                                         )}
                                       </div>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
+                                    </div>
+                                  </td>
+                                </tr>
+                              )})}
                             </tbody>
                           </table>
                         </div>
@@ -1363,14 +1372,27 @@ console.log("Selesai set")
       </div>
       {showImageModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75">
-          <div className="relative max-w-2xl max-h-full overflow-hidden">
-            <img
-              src={`${api}${currentImageModalImages[currentImageIndex].ImageUrl}`}
-              alt="Enlarged Image"
-              className="max-w-full max-h-full object-contain"
-            />
+          <div className="relative w-full h-full max-w-4xl max-h-4xl overflow-hidden flex items-center justify-center">
+            <div
+              className="relative flex items-center justify-center overflow-hidden w-full h-full"
+              style={{
+                cursor: "grab",
+                transform: `scale(${zoom}) translate(${translate.x}px, ${translate.y}px)`,
+                transformOrigin: "center center",
+              }}
+              onMouseDown={(e) => handleMouseDown(e)}
+              onMouseMove={(e) => handleMouseMove(e)}
+              onMouseUp={() => handleMouseUp()}
+              onMouseLeave={() => handleMouseLeave()}
+            >
+              <img
+                src={`${api}${currentImageModalImages[currentImageIndex].ImageUrl}`}
+                alt="Enlarged Image"
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
             <button
-              className="absolute top-0 right-0 m-0 text-white hover:text-gray-300 bg-red-700 rounded-full z-51"
+              className="absolute top-0 right-0 m-2 text-white hover:text-gray-300 bg-red-700 rounded-full p-2 z-51"
               onClick={() => setShowImageModal(false)}
             >
               <svg
@@ -1388,7 +1410,7 @@ console.log("Selesai set")
               </svg>
             </button>
             <button
-              className="absolute top-1/2 left-0 m-1 text-white hover:text-gray-300 bg-green-500"
+              className="absolute top-1/2 left-0 m-2 text-white hover:text-gray-300 bg-green-500 rounded-full p-2 z-51"
               onClick={() =>
                 setCurrentImageIndex(
                   (currentImageIndex - 1 + currentImageModalImages.length) %
@@ -1411,7 +1433,7 @@ console.log("Selesai set")
               </svg>
             </button>
             <button
-              className="absolute top-1/2 right-0 m-1  text-white hover:text-gray-300 bg-green-500"
+              className="absolute top-1/2 right-0 m-2 text-white hover:text-gray-300 bg-green-500 rounded-full p-2 z-51"
               onClick={() =>
                 setCurrentImageIndex(
                   (currentImageIndex + 1) % currentImageModalImages.length
@@ -1432,9 +1454,48 @@ console.log("Selesai set")
                 />
               </svg>
             </button>
+            <div className="absolute bottom-0 left-0 m-2 flex space-x-2 z-51">
+              <button
+                className="text-white hover:text-gray-300 bg-blue-500 rounded-full p-2"
+                onClick={handleZoomIn}
+              >
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+              </button>
+              <button
+                className="text-white hover:text-gray-300 bg-blue-500 rounded-full p-2"
+                onClick={handleZoomOut}
+              >
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M20 12H4m16 0H4"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       )}
+
       <div className=" mt-1 w-full">
         <div className="flex flex-col md:flex-row justify-start md:justify-between">
           <div className="w-full mt-2">

@@ -36,15 +36,17 @@ const failureData = [
 ];
 
 const Grafik = () => {
-  const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(null);
+  const today = new Date();
+  const sixMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 6, today.getDate());
 
+  const [startDate, setStartDate] = useState(sixMonthsAgo);
+  const [endDate, setEndDate] = useState(today);
   const handleSetDates = () => {
     // Logika untuk memperbarui data grafik berdasarkan tanggal yang dipilih
   };
 
   return (
-    <div className="container mx-auto py-4">
+    <div className="container mx-auto ">
       <div className="flex items-center gap-3 mb-10 bg-green-500 text-white py-3 pl-2 rounded-2xl">
         <div className="flex items-center">
           <label className="mr-2">Start:</label>
