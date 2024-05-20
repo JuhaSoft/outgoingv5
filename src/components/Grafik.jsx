@@ -1,39 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import {
-  XYPlot,
-  XAxis,
-  YAxis,
-  VerticalGridLines,
-  HorizontalGridLines,
-  VerticalBarSeries,
-  VerticalBarSeriesCanvas,
-  LabelSeries,
-  ChartLabel, // Import ChartLabel
-} from 'react-vis';
+import Chart from 'react-apexcharts';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+import { HubConnectionBuilder, HubConnection } from '@microsoft/signalr';
 
-// Data dummy
-const productData = [
-  { x: 'Week 1', y: 100, y1: 50 },
-  { x: 'Week 2', y: 120, y1: 60 },
-  { x: 'Week 3', y: 90, y1: 40 },
-  { x: 'Week 4', y: 60, y1: 70 },
-  { x: 'Week 5', y: 110, y1: 70 },
-  { x: 'Week 6', y: 70, y1: 55 },
-  { x: 'Week 7', y: 90, y1: 60 },
-  { x: 'Week 8', y: 75, y1: 10 },
-];
-
-const failureData = [
-  { x: 'ER001', y: 20 },
-  { x: 'ER002', y: 15 },
-  { x: 'ER003', y: 25 },
-  { x: 'ER004', y: 12 },
-  { x: 'ER005', y: 45 },
-  { x: 'ER006', y: 35 },
-  { x: 'ER007', y: 15 },
-];
 
 const Grafik = () => {
   const today = new Date();
@@ -41,10 +13,272 @@ const Grafik = () => {
 
   const [startDate, setStartDate] = useState(sixMonthsAgo);
   const [endDate, setEndDate] = useState(today);
+  const [productData, setProductData] = useState([]);
+  const [failureData, setFailureData] = useState([]);
+  const appConfig = window.globalConfig || {
+    siteName: process.env.REACT_APP_SITENAME,
+  };
+  const api = appConfig.APIHOST;
   const handleSetDates = () => {
-    // Logika untuk memperbarui data grafik berdasarkan tanggal yang dipilih
+    const fetchData = async () => {
+      await fetchDataTrack(startDate, endDate);
+      await fetchDataError(startDate, endDate);
+    };
+  
+    fetchData();
+   
+  };
+  const [hubConnection, setHubConnection] = useState(null);
+  const formatData = (data) => {
+    const formattedData = [];
+    const weekCounts = {};
+
+    // Menghitung jumlah PASS dan FAIL untuk setiap minggu
+    data.DataTracks.$values.forEach((item) => {
+      const date = new Date(item.TrackingDateCreate);
+      const weekNumber = getWeekNumber(date);
+      const year = date.getFullYear().toString().slice(-2); // Mengambil 2 digit terakhir dari tahun
+      const weekKey = `${weekNumber}-${year}`;
+      const result = item.TrackingResult;
+
+      if (!weekCounts[weekKey]) {
+        weekCounts[weekKey] = { pass: 0, fail: 0 };
+      }
+
+      if (result === 'PASS') {
+        weekCounts[weekKey].pass++;
+      } else {
+        weekCounts[weekKey].fail++;
+      }
+    });
+
+    // Mengonversi ke format yang diinginkan
+    Object.keys(weekCounts).forEach((weekKey) => {
+      formattedData.push({
+        x: weekKey,
+        y: weekCounts[weekKey].pass,
+        y1: weekCounts[weekKey].fail,
+      });
+    });
+
+    return formattedData;
   };
 
+  // Fungsi untuk mendapatkan nomor minggu dalam tahun
+  const getWeekNumber = (date) => {
+    const startDate = new Date(date.getFullYear(), 0, 1);
+    const days = Math.floor((date - startDate) / (24 * 60 * 60 * 1000));
+    const weekNumber = Math.ceil((days + startDate.getDay() + 1) / 7);
+    return weekNumber;
+  };
+  useEffect(() => {
+    const fetchData = async () => {
+      await fetchDataTrack(startDate, endDate);
+      await fetchDataError(startDate, endDate);
+    };
+  
+    fetchData();
+  
+    console.log('coba signalr');
+  
+    const buildConnection = async () => {
+      const connection = new HubConnectionBuilder()
+        .withUrl("https://localhost:5001/dataUpdateHub", {
+          withCredentials: true // Tambahkan opsi withCredentials di sini
+        })
+        .build();
+  
+      setHubConnection(connection);
+  
+      try {
+        await connection.start();
+        console.log('SignalR Connected');
+  
+        // Handle DataUpdated event
+        connection.on('DataUpdated', async (dataType) => {
+          console.log(`Data ${dataType} telah diperbarui`);
+          await fetchDataTrack(startDate, endDate);
+          await fetchDataError(startDate, endDate);
+        });
+      } catch (err) {
+        console.log('Error while starting SignalR connection: ', err);
+      }
+    };
+  
+    buildConnection();
+  
+    return () => {
+      // Cleanup SignalR connection when the component is unmounted
+      if (hubConnection) {
+        hubConnection.stop();
+      }
+    };
+  }, [startDate, endDate, api]);
+  useEffect(() => {
+    const fetchData = async () => {
+      await fetchDataTrack(startDate, endDate);
+      await fetchDataError(startDate, endDate);
+    };
+  
+    fetchData();
+    
+  }, []);
+
+  const productChartOptions = {
+    chart: {
+      type: 'bar',
+    },
+    plotOptions: {
+      bar: {
+        horizontal: false,
+        columnWidth: '55%',
+        endingShape: 'rounded',
+        dataLabels: {
+          enabled: false, // Menghilangkan label data dari dalam bar
+        },
+      },
+    },
+    colors: ['#00E396', '#FF4560'], // Warna untuk Pass Product (Hijau) dan Fail Product (Merah)
+    stroke: {
+      show: true,
+      width: 2,
+      colors: ['transparent'],
+    },
+    xaxis: {
+      categories: productData.map((data) => data.x),
+    },
+    yaxis: {
+      title: {
+        text: 'Jumlah',
+      },
+    },
+    fill: {
+      opacity: 1,
+    },
+    tooltip: {
+      y: {
+        formatter: (val) => val,
+      },
+    },
+  };
+  
+  const failureChartOptions = {
+    chart: {
+      type: 'bar',
+    },
+    plotOptions: {
+      bar: {
+        horizontal: false,
+        columnWidth: '55%',
+        endingShape: 'rounded',
+        dataLabels: {
+          enabled: false, // Menghilangkan label data dari dalam bar
+        },
+      },
+    },
+    colors: ['#FF4560'],
+    stroke: {
+      show: true,
+      width: 2,
+      colors: ['transparent'],
+    },
+    xaxis: {
+      categories: failureData.map((data) => data.x),
+    },
+    yaxis: {
+      title: {
+        text: 'Jumlah',
+      },
+    },
+    fill: {
+      opacity: 1,
+    },
+    tooltip: {
+      y: {
+        formatter: (val) => val,
+      },
+    },
+  };
+  const productChartSeries = [
+    {
+      name: 'Pass Product',
+      data: productData.map((data) => data.y),
+    },
+    {
+      name: 'Fail Product',
+      data: productData.map((data) => data.y1),
+    },
+  ];
+
+  const failureChartSeries = [
+    {
+      name: 'Failure Data',
+      data: failureData.map((data) => data.y),
+    },
+  ];
+  const fetchDataTrack = async (start, end) => {
+    try {
+      const startDateString = start.toISOString().split('T')[0];
+      const endDateString = end.toISOString().split('T')[0];
+      const url = `${api}/api/DataTracks/Chart?Start=${startDateString}&End=${endDateString}`;
+      const response = await axios.get(url);
+      const formattedProductData = formatData(response.data);
+      setProductData(formattedProductData);
+
+      // Jika ada data failure, format dan set ke state failureData
+      const formattedFailureData = []; // Ubah sesuai dengan format data failure
+      setFailureData(formattedFailureData);
+    } catch (error) {
+      toast.error('Error fetching data:', error);
+    }
+  };
+  const formatFailureData = (data) => {
+    const formattedData = [];
+    const weekCounts = {};
+  
+    // Menghitung jumlah error untuk setiap minggu
+    data.DataTracks.$values.forEach((item) => {
+      const date = new Date(item.TrackingDateCreate);
+      const weekNumber = getWeekNumber(date);
+      const year = date.getFullYear().toString().slice(-2); // Mengambil 2 digit terakhir dari tahun
+      const weekKey = `${weekNumber}-${year}`;
+      const errorCode = item.ErrorCode;
+  
+      if (!weekCounts[weekKey]) {
+        weekCounts[weekKey] = {};
+      }
+  
+      if (!weekCounts[weekKey][errorCode]) {
+        weekCounts[weekKey][errorCode] = 0;
+      }
+  
+      weekCounts[weekKey][errorCode]++;
+    });
+  
+    // Mengonversi ke format yang diinginkan
+    Object.keys(weekCounts).forEach((weekKey) => {
+      Object.keys(weekCounts[weekKey]).forEach((errorCode) => {
+        formattedData.push({
+          x: `${weekKey} - ${errorCode}`,
+          y: weekCounts[weekKey][errorCode],
+        });
+      });
+    });
+  
+    return formattedData;
+  };
+  const fetchDataError = async (start, end) => {
+    try {
+      const startDateString = start.toISOString().split('T')[0];
+      const endDateString = end.toISOString().split('T')[0];
+      const url = `${api}/api/ErrorTrack/Chart?Start=${startDateString}&End=${endDateString}`;
+      const response = await axios.get(url);
+      const formattedFailureData = formatFailureData(response.data);
+      setFailureData(formattedFailureData);
+    } catch (error) {
+      toast.error('Error fetching data:', error);
+    }
+  };
   return (
     <div className="container mx-auto ">
       <div className="flex items-center gap-3 mb-10 bg-green-500 text-white py-3 pl-2 rounded-2xl">
@@ -73,50 +307,24 @@ const Grafik = () => {
           Set
         </button>
       </div>
-      <div className="flex">
-        <div className="w-1/2 pr-4">
-          <XYPlot
-            width={600}
-            height={300}
-            xType="ordinal"
-            stackBy="y"
-          >
-            <VerticalGridLines />
-            <HorizontalGridLines />
-            <XAxis />
-            <YAxis />
-            <ChartLabel
-              text="Product Data" // Judul grafik untuk productData
-              className="title-label mb-3"
-              includeMargin={false}
-              xPercent={0.5}
-              yPercent={0.1}
-            />
-            <VerticalBarSeries data={productData} />
-            <VerticalBarSeriesCanvas data={productData} barWidth={0.5} valueField="y1" />
-            <LabelSeries data={productData} getLabel={(d) => `${d.y1}`} />
-          </XYPlot>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white rounded-lg shadow-md p-4">
+          <h2 className="text-xl font-semibold mb-4">Product Data</h2>
+          <Chart
+            options={productChartOptions}
+            series={productChartSeries}
+            type="bar"
+            height={350}
+          />
         </div>
-        <div className="w-1/2 pl-4">
-          <XYPlot
-            width={600}
-            height={300}
-            xType="ordinal"
-            stackBy="y"
-          >
-            <VerticalGridLines />
-            <HorizontalGridLines />
-            <XAxis />
-            <YAxis />
-            <ChartLabel
-              text="Failure Data" // Judul grafik untuk failureData
-              className="title-label"
-              includeMargin={false}
-              xPercent={0.5}
-              yPercent={0.1}
-            />
-            <VerticalBarSeries data={failureData} color="#d88884"/>
-          </XYPlot>
+        <div className="bg-white rounded-lg shadow-md p-4">
+          <h2 className="text-xl font-semibold mb-4">Failure Data</h2>
+          <Chart
+            options={failureChartOptions}
+            series={failureChartSeries}
+            type="bar"
+            height={350}
+          />
         </div>
       </div>
     </div>

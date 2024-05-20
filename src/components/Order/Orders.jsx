@@ -428,7 +428,7 @@ export default function Orders() {
       {selectedData && (
         <div className="mb-4">
         <div className="mx-auto">
-          <div className="bg-slate-200 shadow-md rounded px-2 pt-2 pb-1 mb-2 flex flex-wrap items-center justify-between">
+          <div className="bg-blue-400 shadow-md rounded px-2 pt-2 pb-1 mb-2 flex flex-wrap items-center justify-between">
             <div className="flex mb-2 w-full md:w-auto md:flex-1">
               <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
                 <label
@@ -676,11 +676,11 @@ export default function Orders() {
         </div>
       </form>
 
-      <div className="overflow-x-auto   shadow-md sm:rounded-lg mt-6">
+      <div className="overflow-x-auto bg-blue-500  shadow-md sm:rounded-lg mt-2">
         <section className="container mx-auto p-2 font-mono hidden sm:table w-full">
           <div className="w-full mb-2 overflow-hidden rounded-lg shadow-lg">
             <div className="w-full overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full ">
                 <thead>
                   <tr className="text-md font-semibold tracking-wide text-left text-white bg-green-600 uppercase border-b border-gray-600">
                     <th className="px-4 ">WO Number</th>

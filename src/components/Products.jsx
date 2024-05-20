@@ -50,6 +50,10 @@ export default function Products() {
   const [inputValues, setInputValues] = useState([]);
   const [topError, setTopError] = useState([]);
   const [optionEdit, setOptionEdit] = useState([]);
+  const [totalItems, setTotalItems] = useState(10);
+  const [totalPages, SetTotalPages] = useState(1);
+  const [currentPage, SetCurrentPage] = useState(1);
+  const [pageSize, SetPageSize] = useState(10);
   // image
   const [zoom, setZoom] = useState(1);
   const [isPanning, setIsPanning] = useState(false);
@@ -175,6 +179,7 @@ export default function Products() {
   };
   const handlePageClick = (data) => {
     const currentPage = data.selected + 1;
+    SetCurrentPage(currentPage);
     fetchDataTracks(currentPage);
   };
   const fetchDetailData = async (id) => {
@@ -209,6 +214,7 @@ export default function Products() {
         `https://localhost:5001/api/DataTracks/${id}`
       );
       const trackData = response.data;
+      setPsnEdit(response.data.TrackPSN);
       const detailDataResponse = await axios.get(
         `https://localhost:5001/api/DataTrackChecks/${id}`
       );
@@ -466,6 +472,11 @@ export default function Products() {
       toast.error("Terjadi kesalahan saat mengupdate data");
     }
   };
+  const handlerecordPerPage = (event) => {
+    event.preventDefault();
+    const page = event.target.value;
+    SetPageSize(page);
+  };
   const handleFileUpload = (e, index) => {
     const file = e.target.files[0];
     const reader = new FileReader();
@@ -649,7 +660,13 @@ export default function Products() {
     fetchDataTracks();
     fetchDataWoParam(selectedData.Id);
   }, []);
-
+  useEffect(() => {
+    fetchDataTracks(currentPage, pageSize);
+  }, [pageSize, currentPage,  showModal]);
+  // useEffect(() => {
+  //   fetchDataTracks(currentPage,pageCount );
+  //   fetchDataWoParam(selectedData.Id);
+  // }, []);
   return (
     <div className="z-0 ">
       <div className="flex items-center gap-3 mb-2 bg-green-500 text-white  pl-2 rounded-2xl">
@@ -679,6 +696,7 @@ export default function Products() {
                    
                    
                 </div>
+                
                 <div className="mr-2  md:mb-0 md:w-1/6">
                   <label
                     className="block text-gray-700 text-sm font-bold mb-2"
@@ -731,7 +749,7 @@ export default function Products() {
         </div>
       )}
       <div
-        className={`w-full mx-1 mb-1 overflow-hidden rounded-lg shadow-lg bg-gray-100 ${
+        className={`w-full mx-1 mb-1 overflow-hidden rounded-lg shadow-lg bg-green-300 ${
           isWoRunning ? "" : "hidden"
         }`}
       >
@@ -1068,6 +1086,7 @@ export default function Products() {
                               (item) => item.PCID === check.Id
                             );
                             const approvalStatus = dataItem?.Approve;
+
                             const userRole = localStorage.getItem("Role");
                             return approvalStatus === true &&
                               ["Admin", "staf", "Inspektor"].includes(userRole)
@@ -1503,7 +1522,7 @@ export default function Products() {
               <select
                 name="item"
                 className="  w-16   text-base   bg-white text-gray-800 border border-green-700 rounded items-center   align-middle  justify-start"
-                // onChange={(e) => handlerecordPerPage(e)}
+                onChange={(e) => handlerecordPerPage(e)}
               >
                 <option>10</option>
                 <option>20</option>
