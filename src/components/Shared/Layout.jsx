@@ -86,7 +86,7 @@ export default function Layout() {
             <Header />
           </ErrorBoundary> */}
 
-          <div className="flex-1 p-4 min-h-0 overflow-auto">
+          <div className="flex-1 p-4 min-h-0 overflow-auto bg-slate-100">
             <div>
               {/* Konten aplikasi Anda */}
               <ToastContainer position="bottom-center" />

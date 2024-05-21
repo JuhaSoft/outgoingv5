@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 // import globalConfig from '../../config'
 import axios from "axios";
 import ReactPaginate from "react-paginate";
-import { format } from "date-fns";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Modal from "./Shared/Modal";
@@ -17,7 +15,6 @@ export default function Lines() {
   const [LineiDDelete, setLineiDDelete] = useState("");
   const [saveData, setSaveData] = useState(Boolean);
   const [dataProduct, setdataProduct] = useState([]);
-  const [tbldata, settbldata] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [totalItems, setTotalItems] = useState(10);
   const [totalPages, SetTotalPages] = useState(1);
@@ -27,7 +24,7 @@ export default function Lines() {
   const [selectedOption, setSelectedOption] = useState({
     text: "All Categories",
     value: "All",
-  }); // State untuk menyimpan opsi yang dipilih
+  }); 
 
   const dropdownOptions = [
     { text: "All Categories", value: "All" },
@@ -48,10 +45,7 @@ export default function Lines() {
   const openModal = () => {
     setShowModal(true);
   };
-  //   const handleEdit = (data) => {
-  //     setEditData(data);
-  //     setShowModal(true);
-  //   };
+
   const handleEdit = async (data) => {
     setEditData(data);
     setShowModal(true);
@@ -62,7 +56,6 @@ export default function Lines() {
       setEditDataFromApi(response.data);
       setFormData(response.data);
     } catch (error) {
-      // Tangani kesalahan jika permintaan gagal
       toast.error(error.response.data);
     }
   };
@@ -76,29 +69,23 @@ export default function Lines() {
       toast.success("Data berhasil diperbarui");
       // Tutup modal
       closeModal();
-      // Membuat permintaan kembali untuk memperbarui data di tabel
       setSaveData(true);
     } catch (error) {
       if (error.response) {
-        // Tangani kesalahan dari respons server
         if (error.response.data && error.response.data.errors) {
-          // Tangani kesalahan validasi
           const validationErrors = error.response.data.errors;
           const errorMessage = Object.values(validationErrors)
             .map((errors) => errors.join(", "))
             .join("; ");
           setError(errorMessage);
         } else {
-          // Tangani kesalahan lain dari respons server
           setError(error.response.data.message);
         }
         toast.error("Terjadi kesalahan: " + error.response.data);
       } else if (error.request) {
-        // Tangani kesalahan tanpa respons dari server
         setError("Tidak ada respons dari server");
         toast.error("Tidak ada respons dari server");
       } else {
-        // Tangani kesalahan lainnya
         toast.error("Terjadi kesalahan");
       }
     }
@@ -108,12 +95,9 @@ export default function Lines() {
  
     try {
       await axios.delete(`${api}/api/DataLine/${Id}`);
-      // Tampilkan notifikasi sukses
       toast.success("Data berhasil dihapus");
-      // Muat ulang data setelah penghapusan
       setSaveData(true);
     } catch (error) {
-      // Tangani kesalahan
       toast.error("Gagal menghapus data");
     }
     setOpenDlg(false);
@@ -122,21 +106,16 @@ export default function Lines() {
     setidDelete(Gid);
     setLineiDDelete(id);
     setOpenDlg(true);
-    // if (window.confirm("Apakah Anda yakin ingin menghapus data ini?")) {
-    //   handleDelete(Gid); // Jika pengguna menekan OK, panggil fungsi handleDelete
-    // }
+    
   };
   const closeModal = () => {
     setShowModal(false);
-    // Reset nilai input ke nilai awal
     setFormData({
       LineId: "",
       LineName: "",
       isDeleted: false,
     });
-    // Reset nilai editData untuk menandakan tidak ada data yang sedang diedit
     setEditData(null);
-    // Reset nilai editDataFromApi untuk menghapus data yang diambil dari API
     setEditDataFromApi(null);
   };
   const handleChange = (e) => {
@@ -153,10 +132,8 @@ export default function Lines() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (editData) {
-      // Jika ada data yang diedit, maka lakukan proses update
       handleUpdate();
     } else {
-      // Jika tidak ada data yang diedit, maka lakukan proses penambahan data
       try {
         const response = await axios.post(
           `${api}/api/DataLine`,
@@ -170,12 +147,9 @@ export default function Lines() {
           LineName: "",
           isDeleted: false,
         });
-        // Tutup modal
         closeModal();
-        // Membuat permintaan kembali untuk memperbarui data di tabel
         setSaveData(true);
       } catch (error) {
-        // Tangani kesalahan
         toast.error(error);
       }
     }
@@ -183,7 +157,6 @@ export default function Lines() {
 
   useEffect(() => {
     if (!error && !showModal) {
-      // Reset error state jika tidak ada kesalahan dan modal ditutup
       setError("");
     }
   }, [showModal, error]);
@@ -191,27 +164,11 @@ export default function Lines() {
   const handlePageClick = async (data) => {
     let currentPage = data.selected + 1;
     SetCurrentPage(currentPage);
-    // fetchData("Handle Page ", currentPage, pageSize);
   };
-  // useEffect(() => {
-  //   fetchData("Loading Awal");
-  // }, []);
   useEffect(() => {
     fetchData("Change", currentPage, pageSize);
   }, [pageSize, currentPage, saveData, showModal]);
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      // Temukan input berikutnya dalam urutan tab
-      const nextInput = e.target.form.querySelector(
-        "input:not([disabled]):not([readonly])"
-      );
-
-      if (nextInput) {
-        // Pindahkan fokus ke input berikutnya
-        nextInput.focus();
-      }
-    }
-  };
+ 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       const inputs = e.target.form.elements;
@@ -225,16 +182,16 @@ export default function Lines() {
   const handleSearch = (event) => {
     event.preventDefault();
 
-    fetchData("handleSearch"); // Panggil fungsi fetchData dengan parameter default
+    fetchData("handleSearch"); 
 
   };
 
   const handleDropdownToggle = () => {
-    setDropdownVisible(!dropdownVisible); // Toggle state ketika tombol dropdown diklik
+    setDropdownVisible(!dropdownVisible); 
   };
   const handleOptionSelect = (option) => {
     setSelectedOption(option);
-    setDropdownVisible(false); // Menutup dropdown setelah opsi dipilih
+    setDropdownVisible(false);
   };
   const fetchData = async (dari = "sana", pageNumber = 1, pageSize = 10) => {
     try {
@@ -246,10 +203,9 @@ export default function Lines() {
       if (response.data.TotalPages) {
         SetTotalPages(response.data.TotalPages);
       } else {
-        SetTotalPages(1); // Atau tetapkan ke 1 jika tidak ada TotalPages
+        SetTotalPages(1);
       }
     } catch (error) {
-      // toast.error(`Error fetching data dari :${dari} ${error.message}
       toast.error(`Error fetching data:${dari} -  ${error.message}`, {});
     }
   };
@@ -264,13 +220,7 @@ export default function Lines() {
           ADD Line
         </button>
       </div>
-      {/* <button
-        type="button"
-        className="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800 absolute -top-3 left-3"
-        onClick={openModal}
-      >
-        ADD WO
-      </button> */}
+     
       <form
         className="max-w-lg mx-auto md:flex md:items-center md:flex-row-reverse items-center "
         onSubmit={handleSearch}
@@ -448,7 +398,6 @@ export default function Lines() {
                     </span>
                   </div>
 
-                  {/* Tempat untuk tombol aksi jika diperlukan */}
                 </div>
               ))}
             </div>
@@ -524,10 +473,10 @@ export default function Lines() {
                 name="LineId"
                 value={formData.LineId}
                 onChange={handleChange}
-                onKeyDown={handleKeyDown} // Mendeteksi tombol Enter
+                onKeyDown={handleKeyDown} 
                 placeholder="Line Id"
                 className="mb-2 p-2 border rounded"
-                style={{ width: "100%" }} // Menetapkan lebar 100%
+                style={{ width: "100%" }} 
                 tabIndex={0}
               />
               <label
@@ -541,7 +490,7 @@ export default function Lines() {
                 name="LineName"
                 value={formData.LineName}
                 onChange={handleChange}
-                onKeyDown={handleKeyDown} // Mendeteksi tombol Enter
+                onKeyDown={handleKeyDown} 
                 placeholder="Line Name"
                 className="mb-2 p-2 border rounded"
                 tabIndex={1}

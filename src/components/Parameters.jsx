@@ -51,6 +51,11 @@ export default function Parameters() {
   const [showEnlargedModal, setShowEnlargedModal] = useState(false);
   const [openCollapse, setOpenCollapse] = useState({});
   const [detailDataMap, setDetailDataMap] = useState({});
+  const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const [startPoint, setStartPoint] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  
+  const [isPanning, setIsPanning] = useState(false);
   const [selectedOption, setSelectedOption] = useState({
     text: "All Categories",
     value: "All",
@@ -316,7 +321,43 @@ export default function Parameters() {
       toast.error("Maximum number of error code reached.");
     }
   };
+  const handleMouseDown = (e) => {
+    setIsPanning(true);
+    setStartPoint({ x: e.clientX - translate.x, y: e.clientY - translate.y });
+  };
 
+  const handleMouseMove = (e) => {
+    if (!isPanning) return;
+    setTranslate({
+      x: e.clientX - startPoint.x,
+      y: e.clientY - startPoint.y,
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsPanning(false);
+  };
+  const handleMouseLeave = () => {
+    setIsPanning(false);
+  };
+
+  const handleZoomIn = () => {
+    const newZoom = zoom * 1.2;
+    setZoom(newZoom);
+    setTranslate((prev) => ({
+      x: prev.x * 1.2,
+      y: prev.y * 1.2,
+    }));
+  };
+
+  const handleZoomOut = () => {
+    const newZoom = zoom / 1.2;
+    setZoom(newZoom);
+    setTranslate((prev) => ({
+      x: prev.x / 1.2,
+      y: prev.y / 1.2,
+    }));
+  };
   const handleChangeIn = (onChangeValue, i) => {
     const updatedValIn = [...valIn];
     if (i < updatedValIn.length) {
@@ -912,34 +953,85 @@ export default function Parameters() {
         </div>
       )}
       {showEnlargedModal && (
-        <div className="fixed inset-0 flex items-center justify-center  z-max bg-gray-800 bg-opacity-75">
-          <div className="relative">
-            <img
-              src={enlargedImage}
-              alt="Enlarged"
-              className="max-w-full max-h-screen"
-            />
-            <button
-              className="absolute top-0 right-0 m-4 text-white hover:text-gray-300 bg-red-700 rounded-full"
-              onClick={() => setShowEnlargedModal(false)}
-            >
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
+         <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75">
+         <div className="relative w-full h-full max-w-4xl max-h-4xl overflow-hidden flex items-center justify-center">
+           <div
+             className="relative flex items-center justify-center overflow-hidden w-full h-full"
+             style={{
+               cursor: "grab",
+               transform: `scale(${zoom}) translate(${translate.x}px, ${translate.y}px)`,
+               transformOrigin: "center center",
+             }}
+             onMouseDown={(e) => handleMouseDown(e)}
+             onMouseMove={(e) => handleMouseMove(e)}
+             onMouseUp={() => handleMouseUp()}
+             onMouseLeave={() => handleMouseLeave()}
+           >
+             <img
+               src={enlargedImage}
+               alt="Enlarged Image"
+               className="max-w-full max-h-full object-contain"
+             />
+           </div>
+           <button
+             className="absolute top-0 right-0 m-2 text-white hover:text-gray-300 bg-red-700 rounded-full p-2 z-51"
+             onClick={() => setShowEnlargedModal(false)}
+           >
+             <svg
+               className="h-6 w-6"
+               fill="none"
+               viewBox="0 0 24 24"
+               stroke="currentColor"
+             >
+               <path
+                 strokeLinecap="round"
+                 strokeLinejoin="round"
+                 strokeWidth={2}
+                 d="M6 18L18 6M6 6l12 12"
+               />
+             </svg>
+           </button>
           
-        </div>
+           <div className="absolute bottom-0 left-0 m-2 flex space-x-2 z-51">
+             <button
+               className="text-white hover:text-gray-300 bg-blue-500 rounded-full p-2"
+               onClick={handleZoomIn}
+             >
+               <svg
+                 className="h-6 w-6"
+                 fill="none"
+                 viewBox="0 0 24 24"
+                 stroke="currentColor"
+               >
+                 <path
+                   strokeLinecap="round"
+                   strokeLinejoin="round"
+                   strokeWidth={2}
+                   d="M12 4v16m8-8H4"
+                 />
+               </svg>
+             </button>
+             <button
+               className="text-white hover:text-gray-300 bg-blue-500 rounded-full p-2"
+               onClick={handleZoomOut}
+             >
+               <svg
+                 className="h-6 w-6"
+                 fill="none"
+                 viewBox="0 0 24 24"
+                 stroke="currentColor"
+               >
+                 <path
+                   strokeLinecap="round"
+                   strokeLinejoin="round"
+                   strokeWidth={2}
+                   d="M20 12H4m16 0H4"
+                 />
+               </svg>
+             </button>
+           </div>
+         </div>
+       </div>
       )}
       <Modal open={openDlg} onClose={() => setOpenDlg(false)}>
             <div className="text-center w-56">

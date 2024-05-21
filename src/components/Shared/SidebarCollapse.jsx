@@ -4,7 +4,15 @@ import { FiHome, FiSettings, FiFolder } from "react-icons/fi";
 import menuData from "./menuData.json";
 import { Link, useNavigate } from "react-router-dom";
 import { MdOutlinePassword } from "react-icons/md";
-import { HiOutlineViewGrid, HiOutlineCube, HiOutlineShoppingCart, HiOutlineUsers, HiOutlineDocumentText, HiOutlineAnnotation, HiOutlineQuestionMarkCircle } from "react-icons/hi";
+import {
+  HiOutlineViewGrid,
+  HiOutlineCube,
+  HiOutlineShoppingCart,
+  HiOutlineUsers,
+  HiOutlineDocumentText,
+  HiOutlineAnnotation,
+  HiOutlineQuestionMarkCircle,
+} from "react-icons/hi";
 import { GrUserSettings } from "react-icons/gr";
 import { FaGripLines } from "react-icons/fa";
 import { FaRegCircleUser } from "react-icons/fa6";
@@ -38,12 +46,12 @@ const iconMap = {
   HiOutlineCog: HiOutlineCog,
   FaCheckDouble: FaCheckDouble,
   BsClipboard2Data: BsClipboard2Data,
-  FaGripLines:FaGripLines,
-  MdTableRestaurant:MdTableRestaurant,
-  BiSolidMessageAltX:BiSolidMessageAltX,
-  BiPurchaseTagAlt:BiPurchaseTagAlt,
-  MdOutlineDataset:MdOutlineDataset,
-  FcProcess:FcProcess
+  FaGripLines: FaGripLines,
+  MdTableRestaurant: MdTableRestaurant,
+  BiSolidMessageAltX: BiSolidMessageAltX,
+  BiPurchaseTagAlt: BiPurchaseTagAlt,
+  MdOutlineDataset: MdOutlineDataset,
+  FcProcess: FcProcess,
 };
 
 const SidebarCollapse = () => {
@@ -61,13 +69,16 @@ const SidebarCollapse = () => {
   const userRole = localStorage.getItem("Role");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const userDisplayName = localStorage.getItem("DisplayName");
-  const userAvatar = `${api}${localStorage.getItem("Image")}`; // Get user avatar
+  const userImage = localStorage.getItem("Image");
+  const userAvatar = userImage ? `${api}${userImage}` : null;
 
   // State untuk mengelola visibilitas floating menu
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   useEffect(() => {
     if (externalActiveMenu !== null) {
-      const matchedMenu = menuData.find((menu) => menu.label === externalActiveMenu);
+      const matchedMenu = menuData.find(
+        (menu) => menu.label === externalActiveMenu
+      );
       if (matchedMenu) {
         setActiveMenu(matchedMenu.id);
       }
@@ -165,7 +176,7 @@ const SidebarCollapse = () => {
 
   return (
     <div
-      className={`bg-green-600 text-gray-100 ${
+      className={`bg-green-500 text-gray-100 ${
         isOpen ? "w-40" : "w-auto pr-5"
       } h-screen py-5 pl-5 pt-8 relative duration-300`}
     >
@@ -177,12 +188,7 @@ const SidebarCollapse = () => {
       </button>
 
       <div className="flex gap-x-4 items-center">
-       
-        <h1
-          className={`text-2xl duration-300 `}
-        >
-          TQW
-        </h1>
+        <h1 className={`text-2xl duration-300 `}>TQW</h1>
       </div>
 
       <ul className="pt-6">
@@ -194,7 +200,9 @@ const SidebarCollapse = () => {
                   ? "bg-white text-green-600 hover:bg-white hover:text-green-600"
                   : "text-white hover:bg-white hover:text-slate-600"
               } ${!isOpen && "rounded-full "}`}
-              onClick={() => setActiveMenu(activeMenu === menu.id ? null : menu.id)}
+              onClick={() =>
+                setActiveMenu(activeMenu === menu.id ? null : menu.id)
+              }
               title={menu.label}
             >
               <Link to={menu.path} className="flex items-center gap-x-2">
@@ -261,8 +269,11 @@ const SidebarCollapse = () => {
 
       {/* Floating Menu untuk Profile */}
       {showProfileMenu && (
-        <div id="profileMenu" className="absolute bottom-0 left-0 z-50 bg-green-600 text-white shadow-r-lg rounded-r-lg p-2"
-             style={{ left: "5rem", maxWidth: "12rem" }}>
+        <div
+          id="profileMenu"
+          className="absolute bottom-0 left-0 z-50 bg-green-600 text-white shadow-r-lg rounded-r-lg p-2"
+          style={{ left: "5rem", maxWidth: "12rem" }}
+        >
           <ul>
             {submenuProfil.map((subMenu) => (
               <li
@@ -296,68 +307,64 @@ const SidebarCollapse = () => {
             } ${isOpen ? "ml-6" : ""}`}
           >
             {!isLoggedIn ? (
-  // Opsi untuk Login
-  <button
-    onClick={() => {
-      navigate("/LoginUser");
-      toggleSidebar();
-    }}
-    className="flex items-center gap-x-2"
-  >
-    <FaRegCircleUser className="text-3xl" />
-    <span>Login</span>
-  </button>
-) : (
-  // Opsi untuk Profil Pengguna saat login
-  <div>
-
-  <button
-                onClick={handleProfileClick}
+              // Opsi untuk Login
+              <button
+                onClick={() => {
+                  navigate("/LoginUser");
+                  toggleSidebar();
+                }}
                 className="flex items-center gap-x-2"
               >
-                <div
-    className="relative"
-    
-    onMouseEnter={() => {
-      const enlargedPhoto = document.getElementById("enlargedPhoto");
-      if (enlargedPhoto) {
-        enlargedPhoto.classList.remove("hidden");
-        enlargedPhoto.classList.add("fixed");
-      }
-    }}
-    onMouseLeave={() => {
-      const enlargedPhoto = document.getElementById("enlargedPhoto");
-      if (enlargedPhoto) {
-        enlargedPhoto.classList.add("hidden");
-        enlargedPhoto.classList.remove("fixed", "clicked");
-      }
-    }}
-  >
-    <img
-      src={userAvatar}
-      alt="User Avatar"
-      className="w-12 h-12 rounded-full cursor-pointer"
-    />
-    {/* Enlarged Photo on Hover or Click */}
-    <div
-      id="enlargedPhoto"
-      className="hidden top-1/2 right-3/4 transform translate-y-1/2 z-50"
-    >
-      <img
-        src={userAvatar}
-        alt="User Avatar"
-        className="w-60 h-60 rounded-full shadow-lg border-4 border-green-600 cursor-pointer transition-transform duration-300 transform hover:scale-100"
-      />
-    </div>
-   
-  </div>
-                <span>{userDisplayName}</span>
+                <FaRegCircleUser className="text-3xl" />
+                <span>Login</span>
               </button>
-  </div>
-  
-  
-)}
-
+            ) : (
+              // Opsi untuk Profil Pengguna saat login
+              <div>
+                <button
+                  onClick={handleProfileClick}
+                  className="flex items-center gap-x-2"
+                >
+                  <div
+                    className="relative"
+                    onMouseEnter={() => {
+                      const enlargedPhoto =
+                        document.getElementById("enlargedPhoto");
+                      if (enlargedPhoto) {
+                        enlargedPhoto.classList.remove("hidden");
+                        enlargedPhoto.classList.add("fixed");
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      const enlargedPhoto =
+                        document.getElementById("enlargedPhoto");
+                      if (enlargedPhoto) {
+                        enlargedPhoto.classList.add("hidden");
+                        enlargedPhoto.classList.remove("fixed", "clicked");
+                      }
+                    }}
+                  >
+                    <img
+                      src={userAvatar}
+                      alt="User Avatar"
+                      className="w-12 h-12 rounded-full cursor-pointer"
+                    />
+                    {/* Enlarged Photo on Hover or Click */}
+                    <div
+                      id="enlargedPhoto"
+                      className="hidden top-1/2 right-3/4 transform translate-y-1/2 z-50"
+                    >
+                      <img
+                        src={userAvatar}
+                        alt="User Avatar"
+                        className="w-60 h-60 rounded-full shadow-lg border-4 border-green-600 cursor-pointer transition-transform duration-300 transform hover:scale-100"
+                      />
+                    </div>
+                  </div>
+                  <span>{userDisplayName}</span>
+                </button>
+              </div>
+            )}
           </li>
         </ul>
       </div>

@@ -205,8 +205,6 @@ export default function Products() {
       [id]: !prevOpenCollapse[id],
     }));
     fetchDetailData(id);
-   
-    
   };
   const handleEditClick = async (id) => {
     try {
@@ -220,7 +218,6 @@ export default function Products() {
       );
       const detailData = detailDataResponse.data.$values;
       const parameterCheck = detailData.map((item) => {
-     
         return {
           Id: item.ParameterCheck.Id,
           Description: item.ParameterCheck.Description,
@@ -276,7 +273,6 @@ export default function Products() {
     } catch (error) {
       toast.error("Error fetching data:", error);
     }
-     
   };
   const closeModal = () => {
     setShowModal(false);
@@ -658,11 +654,13 @@ export default function Products() {
   }, [apiData]);
   useEffect(() => {
     fetchDataTracks();
-    fetchDataWoParam(selectedData.Id);
+    if(selectedData){
+      fetchDataWoParam(selectedData.Id);
+    }
   }, []);
   useEffect(() => {
     fetchDataTracks(currentPage, pageSize);
-  }, [pageSize, currentPage,  showModal]);
+  }, [pageSize, currentPage, showModal]);
   // useEffect(() => {
   //   fetchDataTracks(currentPage,pageCount );
   //   fetchDataWoParam(selectedData.Id);
@@ -676,27 +674,21 @@ export default function Products() {
       {selectedData && (
         <div className="mb-4">
           <div className="mx-auto">
-          <label
-  className="block text-black  font-bold mb-2 bg-green-300 shadow-md rounded text-center text-lg py-1"
->
-  Order Running
-</label>
+            <label className="block text-black  font-bold mb-2 bg-green-300 shadow-md rounded text-center text-lg py-1">
+              Order Running
+            </label>
 
             <div className="bg-slate-200 shadow-md rounded px-2 pt-2  flex flex-wrap items-center justify-between">
               <div className="flex  w-full md:w-auto md:flex-1">
-             
                 <div className="mr-2  md:mb-0 md:w-1/6">
-                  
                   <label
                     className="block text-gray-700 text-sm font-bold mb-2"
                     htmlFor="woNumber"
                   >
                     WO Number : {selectedData.WoNumber}
                   </label>
-                   
-                   
                 </div>
-                
+
                 <div className="mr-2  md:mb-0 md:w-1/6">
                   <label
                     className="block text-gray-700 text-sm font-bold mb-2"
@@ -704,7 +696,6 @@ export default function Products() {
                   >
                     SO Number : {selectedData.SONumber}
                   </label>
-                   
                 </div>
                 <div className="mr-2  md:mb-0 md:w-1/6">
                   <label
@@ -713,7 +704,6 @@ export default function Products() {
                   >
                     Reference : {selectedData.WoReferenceID}
                   </label>
-                   
                 </div>
                 <div className="mr-2  md:mb-0 md:w-1/6">
                   <label
@@ -722,7 +712,6 @@ export default function Products() {
                   >
                     WO Qty : {selectedData.WoQTY}
                   </label>
-                   
                 </div>
                 <div className="mr-2  md:mb-0 md:w-1/6">
                   <label
@@ -731,7 +720,6 @@ export default function Products() {
                   >
                     Qty Pass :{selectedData.PassQTY}
                   </label>
-                  
                 </div>
                 <div className="mr-2  md:mb-0 md:w-1/6">
                   <label
@@ -740,20 +728,20 @@ export default function Products() {
                   >
                     Qty Fail : {selectedData.FailQTY}
                   </label>
-                   
                 </div>
               </div>
-              
             </div>
           </div>
         </div>
       )}
+      
       <div
         className={`w-full mx-1 mb-1 overflow-hidden rounded-lg shadow-lg bg-green-300 ${
           isWoRunning ? "" : "hidden"
         }`}
       >
-        <div className="flex items-center p-2">
+        
+        <div className={`flex items-center p-2 ${selectedData?"":"hidden"}`}>
           <input
             name="inputPSN"
             className="flex-grow px-4 py-2 border rounded-l"
@@ -833,80 +821,86 @@ export default function Products() {
                     </select>
                     {/* Hidden select element */}
                     <div className="w-1/9">
-  <select
-    className="w-1/9 p-2 border border-gray-300 rounded"
-    value={(() => {
-      
-      const errorId = dataTrackCheckings.find(
-        (item) => item.PCID == check.Id
-      )?.ErrorId;
-      return errorId || "";
-       
-    })()}
-    onChange={(e) => {
-      const newDataTrackCheckings = dataTrackCheckings.map((item) => {
-        const isMatchingId = item.PCID == check.Id;
+                      <select
+                        className="w-1/9 p-2 border border-gray-300 rounded"
+                        value={(() => {
+                          const errorId = dataTrackCheckings.find(
+                            (item) => item.PCID == check.Id
+                          )?.ErrorId;
+                          return errorId || "";
+                        })()}
+                        onChange={(e) => {
+                          const newDataTrackCheckings = dataTrackCheckings.map(
+                            (item) => {
+                              const isMatchingId = item.PCID == check.Id;
 
-        return isMatchingId
-          ? { ...item, ErrorId: e.target.value }
-          : item;
-      });
-      // Menambahkan console.log di sini
-      
-      setDataTrackCheckings(newDataTrackCheckings);
-    }}
-    style={{
-      visibility:
-        dataTrackCheckings.find(
-          (item) => item.PCID === check.Id
-        )?.Result === "Pass" ||
-        !dataTrackCheckings.find(
-          (item) => item.PCID === check.Id
-        )?.Result
-          ? "hidden"
-          : "visible",
-      opacity:
-        dataTrackCheckings.find(
-          (item) => item.PCID === check.Id
-        )?.Result === "Pass" ||
-        !dataTrackCheckings.find(
-          (item) => item.PCID === check.Id
-        )?.Result
-          ? 0
-          : 1,
-    }}
-  >
-    <option value="">Pilih Error Message</option>
+                              return isMatchingId
+                                ? { ...item, ErrorId: e.target.value }
+                                : item;
+                            }
+                          );
 
-{check.ParameterCheckErrorMessages.$values.map((errorMessage, index) => {
-  // Tambahkan console.log(check) di sini
+                          setDataTrackCheckings(newDataTrackCheckings);
+                        }}
+                        style={{
+                          visibility:
+                            dataTrackCheckings.find(
+                              (item) => item.PCID === check.Id
+                            )?.Result === "Pass" ||
+                            !dataTrackCheckings.find(
+                              (item) => item.PCID === check.Id
+                            )?.Result
+                              ? "hidden"
+                              : "visible",
+                          opacity:
+                            dataTrackCheckings.find(
+                              (item) => item.PCID === check.Id
+                            )?.Result === "Pass" ||
+                            !dataTrackCheckings.find(
+                              (item) => item.PCID === check.Id
+                            )?.Result
+                              ? 0
+                              : 1,
+                        }}
+                      >
+                        <option value="">Pilih Error Message</option>
 
-  if (editingData) {
-    // Logika dari kode pertama
-    return (
-      errorMessage && (
-        <option key={index} value={errorMessage.ErrorId}>
-          {errorMessage.ErrorCode + "=>" + errorMessage.ErrorDescription}
-        </option>
-      )
-    );
-  } else {
-    // Logika dari kode kedua untuk kasus ketika editingData bernilai false
-    return (
-      <option key={index} value={errorMessage.ErrorMessage.Id}>
-        {errorMessage.ErrorMessage.ErrorCode +
-          " => " +
-          errorMessage.ErrorMessage.ErrorDescription}
-      </option>
-    );
-  }
-  return null;
-})}
+                        {check.ParameterCheckErrorMessages.$values.map(
+                          (errorMessage, index) => {
+                            // Tambahkan console.log(check) di sini
 
-  </select>
- 
-</div>
-
+                            if (editingData) {
+                              // Logika dari kode pertama
+                              return (
+                                errorMessage && (
+                                  <option
+                                    key={index}
+                                    value={errorMessage.ErrorId}
+                                  >
+                                    {errorMessage.ErrorCode +
+                                      "=>" +
+                                      errorMessage.ErrorDescription}
+                                  </option>
+                                )
+                              );
+                            } else {
+                              // Logika dari kode kedua untuk kasus ketika editingData bernilai false
+                              return (
+                                <option
+                                  key={index}
+                                  value={errorMessage.ErrorMessage.Id}
+                                >
+                                  {errorMessage.ErrorMessage.ErrorCode +
+                                    " => " +
+                                    errorMessage.ErrorMessage.ErrorDescription}
+                                </option>
+                              );
+                            }
+                            return null;
+                          }
+                        )}
+                      </select>
+                    </div>
 
                     <div className="w-1/9">
                       {check.ImageSampleUrl && (
@@ -1135,16 +1129,49 @@ export default function Products() {
                 );
               })}
             {showEnlargedModal && (
-              <div className="fixed inset-0 flex items-center justify-center  z-max bg-gray-800 bg-opacity-75">
-                <div className="relative">
+              <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75">
+              <div className="relative w-full h-full max-w-4xl max-h-4xl overflow-hidden flex items-center justify-center">
+                <div
+                  className="relative flex items-center justify-center overflow-hidden w-full h-full"
+                  style={{
+                    cursor: "grab",
+                    transform: `scale(${zoom}) translate(${translate.x}px, ${translate.y}px)`,
+                    transformOrigin: "center center",
+                  }}
+                  onMouseDown={(e) => handleMouseDown(e)}
+                  onMouseMove={(e) => handleMouseMove(e)}
+                  onMouseUp={() => handleMouseUp()}
+                  onMouseLeave={() => handleMouseLeave()}
+                >
                   <img
                     src={enlargedImage}
-                    alt="Enlarged"
-                    className="max-w-full max-h-screen"
+                    alt="Enlarged Image"
+                    className="max-w-full max-h-full object-contain"
                   />
+                </div>
+                <button
+                  className="absolute top-0 right-0 m-2 text-white hover:text-gray-300 bg-red-700 rounded-full p-2 z-51"
+                  onClick={() => setShowEnlargedModal(false)}
+                >
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+               
+                <div className="absolute bottom-0 left-0 m-2 flex space-x-2 z-51">
                   <button
-                    className="absolute top-0 right-0 m-4 text-white hover:text-gray-300 bg-red-700 rounded-full"
-                    onClick={() => setShowEnlargedModal(false)}
+                    className="text-white hover:text-gray-300 bg-blue-500 rounded-full p-2"
+                    onClick={handleZoomIn}
                   >
                     <svg
                       className="h-6 w-6"
@@ -1156,12 +1183,31 @@ export default function Products() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    className="text-white hover:text-gray-300 bg-blue-500 rounded-full p-2"
+                    onClick={handleZoomOut}
+                  >
+                    <svg
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M20 12H4m16 0H4"
                       />
                     </svg>
                   </button>
                 </div>
               </div>
+            </div>
             )}
             <div className="flex justify-between items-end mt-5">
               <button
@@ -1308,75 +1354,80 @@ export default function Products() {
                           </h2>
                           <table className="w-full ">
                             <tbody className="">
-                              {detailDataMap[track.Id].map((detail, index) =>{
+                              {detailDataMap[track.Id].map((detail, index) => {
                                 return (
-                                <tr key={index} className={`border-b `}>
-                                  <td colSpan="6" className="px-2 ">
-                                    <div
-                                      className={`p-2 rounded-lg shadow ${
-                                        detail.DTCValue === "Pass" ||
-                                        detail.DTCValue === "PASS"
-                                          ? "bg-white"
-                                          : "bg-red-50"
-                                      }`}
-                                    >
-                                      <div className="flex flex-col sm:flex-row sm:items-center">
-                                        <div className="flex-1 text-gray-600">
-                                          {detail.ParameterCheck.Description}
-                                        </div>
-                                        <div className="flex-1 text-gray-600">
-                                          {detail.DTCValue}
-                                        </div>
-                                        <div className="flex-1 text-gray-600">
-  {detail.ErrorMessage && detail.ErrorMessage.ErrorCode && detail.ErrorMessage.ErrorDescription 
-    ? `${detail.ErrorMessage.ErrorCode} => ${detail.ErrorMessage.ErrorDescription}` 
-    : "-"}
-</div>
-                                        
-                                        <div className="flex-1 flex gap-2">
-                                          {detail.ImageDataChecks.$values.map(
-                                            (image, imageIndex) => (
-                                              <img
-                                                key={imageIndex}
-                                                src={`${api}${image.ImageUrl}`}
-                                                alt={`Image ${imageIndex + 1}`}
-                                                className="w-12 h-12 object-cover rounded border border-gray-300 cursor-pointer"
-                                                onClick={() =>
-                                                  handleImageClick(
-                                                    detail.ImageDataChecks
-                                                      .$values,
-                                                    imageIndex
-                                                  )
-                                                }
-                                              />
-                                            )
+                                  <tr key={index} className={`border-b `}>
+                                    <td colSpan="6" className="px-2 ">
+                                      <div
+                                        className={`p-2 rounded-lg shadow ${
+                                          detail.DTCValue === "Pass" ||
+                                          detail.DTCValue === "PASS"
+                                            ? "bg-white"
+                                            : "bg-red-50"
+                                        }`}
+                                      >
+                                        <div className="flex flex-col sm:flex-row sm:items-center">
+                                          <div className="flex-1 text-gray-600">
+                                            {detail.ParameterCheck.Description}
+                                          </div>
+                                          <div className="flex-1 text-gray-600">
+                                            {detail.DTCValue}
+                                          </div>
+                                          <div className="flex-1 text-gray-600">
+                                            {detail.ErrorMessage &&
+                                            detail.ErrorMessage.ErrorCode &&
+                                            detail.ErrorMessage.ErrorDescription
+                                              ? `${detail.ErrorMessage.ErrorCode} => ${detail.ErrorMessage.ErrorDescription}`
+                                              : "-"}
+                                          </div>
+
+                                          <div className="flex-1 flex gap-2">
+                                            {detail.ImageDataChecks.$values.map(
+                                              (image, imageIndex) => (
+                                                <img
+                                                  key={imageIndex}
+                                                  src={`${api}${image.ImageUrl}`}
+                                                  alt={`Image ${
+                                                    imageIndex + 1
+                                                  }`}
+                                                  className="w-12 h-12 object-cover rounded border border-gray-300 cursor-pointer"
+                                                  onClick={() =>
+                                                    handleImageClick(
+                                                      detail.ImageDataChecks
+                                                        .$values,
+                                                      imageIndex
+                                                    )
+                                                  }
+                                                />
+                                              )
+                                            )}
+                                          </div>
+                                          {detail.Approve === true ? (
+                                            <>
+                                              <div className="flex-1 text-gray-600">
+                                                Approve by:{" "}
+                                                {detail.Approver.DisplayName}
+                                              </div>
+                                              <div className="flex-1 p-2">
+                                                <textarea
+                                                  readOnly
+                                                  value={detail.ApprRemaks}
+                                                  className="w-full h-12 p-2 border rounded"
+                                                />
+                                              </div>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <div className="flex-1"></div>
+                                              <div className="flex-1"></div>
+                                            </>
                                           )}
                                         </div>
-                                        {detail.Approve === true ? (
-                                          <>
-                                            <div className="flex-1 text-gray-600">
-                                              Approve by:{" "}
-                                              {detail.Approver.DisplayName}
-                                            </div>
-                                            <div className="flex-1 p-2">
-                                              <textarea
-                                                readOnly
-                                                value={detail.ApprRemaks}
-                                                className="w-full h-12 p-2 border rounded"
-                                              />
-                                            </div>
-                                          </>
-                                        ) : (
-                                          <>
-                                            <div className="flex-1"></div>
-                                            <div className="flex-1"></div>
-                                          </>
-                                        )}
                                       </div>
-                                    </div>
-                                  </td>
-                                </tr>
-                              )})}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>

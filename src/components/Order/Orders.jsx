@@ -18,7 +18,6 @@ export default function Orders() {
   const [error, setError] = useState("");
   const [saveData, setSaveData] = useState(Boolean);
   const [dataProduct, setdataProduct] = useState([]);
-  const [tbldata, settbldata] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [totalItems, setTotalItems] = useState(10);
   const [totalPages, SetTotalPages] = useState(1);
@@ -41,8 +40,7 @@ export default function Orders() {
   const [selectedOption, setSelectedOption] = useState({
     text: "All Categories",
     value: "All",
-  }); // State untuk menyimpan opsi yang dipilih
-  const location = useLocation();
+  });
   const dropdownOptions = [
     { text: "All Categories", value: "All" },
     { text: "Work Order", value: "WoNumber" },
@@ -57,11 +55,9 @@ export default function Orders() {
   const [editDataFromApi, setEditDataFromApi] = useState(null);
   const handleRunStop = () => {
     if (isWoRunning) {
-      // Jika sedang berjalan, set local storage menjadi false dan hentikan
       localStorage.setItem("woStartRun", "false");
       setIsWoRunning(false);
     } else {
-      // Jika tidak berjalan, set local storage menjadi true dan jalankan
       localStorage.setItem("woStartRun", "true");
       setIsWoRunning(true);
       setExternalActiveMenu('Process')// sesuaikan dengan label in menuData
@@ -79,7 +75,6 @@ export default function Orders() {
     PassQTY: "0",
     FailQTY: "0",
     WoStatus: "Open",
-    // WoCreate: moment(new Date()).format('YYYY-MM-DD HH:mm:ss'),
     UserIdCreate: UserId,
     WOisDeleted: false,
   });
@@ -114,39 +109,27 @@ export default function Orders() {
           Authorization: `Bearer ${token}`,
         },
       };
-      const response = await axios.put(
-        `${api}/api/Wo/${editData.Id}`,
-        formData,
-        config
-      );
+     
 
-      // Menampilkan notifikasi sukses
       toast.success("Data berhasil diperbarui");
-      // Tutup modal
       closeModal();
-      // Membuat permintaan kembali untuk memperbarui data di tabel
       setSaveData(true);
     } catch (error) {
       if (error.response) {
-        // Tangani kesalahan dari respons server
         if (error.response.data && error.response.data.errors) {
-          // Tangani kesalahan validasi
           const validationErrors = error.response.data.errors;
           const errorMessage = Object.values(validationErrors)
             .map((errors) => errors.join(", "))
             .join("; ");
           setError(errorMessage);
         } else {
-          // Tangani kesalahan lain dari respons server
           setError(error.response.data.message);
         }
         toast.error("Terjadi kesalahan: " + error.response.data);
       } else if (error.request) {
-        // Tangani kesalahan tanpa respons dari server
         setError("Tidak ada respons dari server");
         toast.error("Tidak ada respons dari server");
       } else {
-        // Tangani kesalahan lainnya
         toast.error("Terjadi kesalahan");
       }
     }
@@ -154,7 +137,6 @@ export default function Orders() {
 
   const closeModal = () => {
     setShowModal(false);
-    // Reset nilai input ke nilai awal
     setFormData({
       WoNumber: "",
       SONumber: "",
@@ -163,13 +145,10 @@ export default function Orders() {
       PassQTY: "0",
       FailQTY: "0",
       WoStatus: "Open",
-      // WoCreate: moment(new Date()).format('YYYY-MM-DD HH:mm:ss'),
       UserIdCreate: UserId,
       WOisDeleted: false,
     });
-    // Reset nilai editData untuk menandakan tidak ada data yang sedang diedit
     setEditData(null);
-    // Reset nilai editDataFromApi untuk menghapus data yang diambil dari API
     setEditDataFromApi(null);
   };
 
@@ -178,7 +157,6 @@ export default function Orders() {
     const regex = /^[0-9]*$/;
     if (name === "PassQTY" || name === "FailQTY" || name == "WoQTY") {
       if (!regex.test(value)) {
-        // Jika tidak cocok dengan regex, tidak perbarui state
         return;
       }
     }
@@ -207,7 +185,6 @@ export default function Orders() {
           },
         });
 
-        // Menampilkan notifikasi sukses
         toast.success("Data berhasil disimpan");
         setFormData({
           WoNumber: "",
@@ -220,7 +197,6 @@ export default function Orders() {
           UserIdCreate: UserId,
           WOisDeleted: false,
         });
-        // Tutup modal
         if (saveData) {
           setSaveData(false);
         } else {
@@ -230,25 +206,20 @@ export default function Orders() {
         closeModal();
       } catch (error) {
         if (error.response) {
-          // Tangani kesalahan dari respons server
           if (error.response.data && error.response.data.errors) {
-            // Tangani kesalahan validasi
             const validationErrors = error.response.data.errors;
             const errorMessage = Object.values(validationErrors)
               .map((errors) => errors.join(", "))
               .join("; ");
             setError(errorMessage);
           } else {
-            // Tangani kesalahan lain dari respons server
             setError(error.response.data.message);
           }
           toast.error("Terjadi kesalahan");
         } else if (error.request) {
-          // Tangani kesalahan tanpa respons dari server
           setError("Tidak ada respons dari server");
           toast.error("Tidak ada respons dari server");
         } else {
-          // Tangani kesalahan lainnya
           setError("Terjadi kesalahan");
           toast.error("Terjadi kesalahan");
         }
@@ -299,13 +270,11 @@ export default function Orders() {
     const fetchComboNames = async () => {
       try {
         const response = await axios.get(`${api}/api/DataReference`);
-        // Format data dari API sesuai dengan kebutuhan react-select
         const formattedData = response.data.Items.$values.map((item) => ({
           value: item.RefereceName,
           label: item.RefereceName,
         }));
         setComboNames(formattedData);
-        // Mengisi formData.WoReferenceID dengan data pertama dari formattedData
         if (formattedData.length > 0) {
           setFormData((prevData) => ({
             ...prevData,
@@ -329,14 +298,13 @@ export default function Orders() {
       });
     }
 
-    // Lakukan apa pun yang perlu Anda lakukan dengan stasiun yang dipilih di sini
   };
   const handleDropdownToggle = () => {
-    setDropdownVisible(!dropdownVisible); // Toggle state ketika tombol dropdown diklik
+    setDropdownVisible(!dropdownVisible); 
   };
   const handleOptionSelect = (option) => {
     setSelectedOption(option);
-    setDropdownVisible(false); // Menutup dropdown setelah opsi dipilih
+    setDropdownVisible(false);
   };
   const fetchData = async (dari = "sana", pageNumber = 1, pageSize = 10) => {
     try {
@@ -348,10 +316,9 @@ export default function Orders() {
       if (response.data.TotalPages) {
         SetTotalPages(response.data.TotalPages);
       } else {
-        SetTotalPages(1); // Atau tetapkan ke 1 jika tidak ada TotalPages
+        SetTotalPages(1); 
       }
     } catch (error) {
-      // toast.error(`Error fetching data dari :${dari} ${error.message}
       toast.error(`Error fetching data:${dari} -  ${error.message}`, {});
     }
   };
@@ -368,20 +335,17 @@ export default function Orders() {
         
       );
     }
-    return null; // Tombol tidak ditampilkan jika WoStatus bukan "Open"
+    return null;
   };
   
   const handleSelect = (data) => {
-    // Simpan data yang dipilih ke state
 
     setSelectedData(data);
     localStorage.setItem("selectedOrder", JSON.stringify(data));
-    // Simpan data yang dipilih ke local storage
     localStorage.setItem("WoIDRun", data.WoNumber);
     localStorage.setItem("SORun", data.SONumber);
     localStorage.setItem("ReferceRun", data.WoReferenceID);
     localStorage.setItem("WoQtyRun", data.WoQTY);
-    // localStorage.setItem('WoStartRun', data.WoQTY)\
     GetDetailRef(data.WoReferenceID);
   };
 
@@ -401,7 +365,6 @@ export default function Orders() {
       localStorage.setItem("DetailRef", JSON.stringify(response.data));
       setError(null);
     } catch (error) {
-      // Tangani kesalahan jika permintaan gagal
       setError(error.response.data.message || "Something went wrong");
     }
   };
@@ -428,7 +391,7 @@ export default function Orders() {
       {selectedData && (
         <div className="mb-4">
         <div className="mx-auto">
-          <div className="bg-blue-400 shadow-md rounded px-2 pt-2 pb-1 mb-2 flex flex-wrap items-center justify-between">
+          <div className="bg-blue-300 shadow-md rounded px-2 pt-2 pb-1 mb-2 flex flex-wrap items-center justify-between">
             <div className="flex mb-2 w-full md:w-auto md:flex-1">
               <div className="mr-2 mb-2 md:mb-0 md:w-1/6">
                 <label
@@ -537,7 +500,6 @@ export default function Orders() {
               <div>
         
               <button
-                // className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-4 md:mt-0 md:ml-2 "
                 className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-4 md:mt-0 md:ml-2 ${
                   isWoRunning ? "bg-red-500" : "bg-green-500"
                 } text-white w-auto `}
@@ -553,18 +515,7 @@ export default function Orders() {
       </div>
       )}
 
-      {/* <div
-        className={`fixed top-0 right-4 mb-4 mr-2 ${
-          selectedData ? "mt-40" : "mt-11"
-        } z-30`}
-      >
-        <button
-          onClick={openModal}
-          className=" bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
-        >
-          ADD Order
-        </button>
-      </div> */}
+     
       {userRole && (
         <div
           className={`fixed top-0 right-4 mb-4 mr-2 ${
@@ -676,7 +627,7 @@ export default function Orders() {
         </div>
       </form>
 
-      <div className="overflow-x-auto bg-blue-500  shadow-md sm:rounded-lg mt-2">
+      <div className="overflow-x-auto bg-blue-300  shadow-md sm:rounded-lg mt-2">
         <section className="container mx-auto p-2 font-mono hidden sm:table w-full">
           <div className="w-full mb-2 overflow-hidden rounded-lg shadow-lg">
             <div className="w-full overflow-x-auto">
@@ -740,7 +691,6 @@ export default function Orders() {
                               "dd-MM-yyyy HH:mm:ss"
                             )
                           : "NOt Valid"}
-                        {/* {data.trackingDateCreate} */}
                       </td>
                       <td
                         data-name="Date"
@@ -756,12 +706,7 @@ export default function Orders() {
                           >
                             Edit
                           </button>
-                          {/* <button
-                            className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-red-300"
-                            // onClick={() => confirmDelete(data.Id, data.StationID)}
-                          >
-                            Select
-                          </button> */}
+                         
                       
                       {localStorage.getItem('woStartRun') !== 'true' && renderSelectButton(data)}
                         </span>

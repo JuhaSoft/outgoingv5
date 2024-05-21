@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
-import { FaEye, FaEdit } from "react-icons/fa";
+import { FaEye } from "react-icons/fa";
 import ReactPaginate from "react-paginate";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -12,32 +12,18 @@ export default function Dashboard() {
     siteName: process.env.REACT_APP_SITENAME,
   };
   const api = appConfig.APIHOST;
-  const [error, setError] = useState("");
   const [totalRecord, setTotalRecord] = useState(0);
   const [pageCount, setpageCount] = useState(0);
-  const [showModalGalery, setShowModalGalery] = useState(false);
-  const [selectedImages, setSelectedImages] = useState([]);
-  const [editingData, setEditingData] = useState(null);
-  const [query, setQuery] = useState("");
-  const [errorProduct, setErrorProduct] = useState("");
-  const [lastStatioCheck, setLastStatioCheck] = useState("Packaging");
-  const [result, setResult] = useState("");
-  const [psnBarcode, setPsnBarcode] = useState("");
-  const [refBarcode, setRefBarcode] = useState("");
-  const [refId, setRefId] = useState("");
-  const [apiData, setApiData] = useState(null);
-  const [dataTrackCheckings, setDataTrackCheckings] = useState([]);
+
   const [showImageModal, setShowImageModal] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentImageModalImages, setCurrentImageModalImages] = useState([]);
   const [detailDataMap, setDetailDataMap] = useState({});
-  const [topError, setTopError] = useState([]);
   // image
   const [zoom, setZoom] = useState(1);
   const [isPanning, setIsPanning] = useState(false);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
   const [startPoint, setStartPoint] = useState({ x: 0, y: 0 });
-  const [isToastDisplayed, setIsToastDisplayed] = useState(false);
   const handleMouseDown = (e) => {
     setIsPanning(true);
     setStartPoint({ x: e.clientX - translate.x, y: e.clientY - translate.y });
@@ -78,26 +64,9 @@ export default function Dashboard() {
   };
 
   
-  // const inputPSN = useRef(null);
-  const [selectedData, setSelectedData] = useState(
-    JSON.parse(localStorage.getItem("selectedOrder"))
-  );
+ 
   const [openCollapse, setOpenCollapse] = useState({});
-  const [parameterGalleries, setParameterGalleries] = useState(
-    apiData && apiData.ParameterCheck
-      ? apiData.ParameterCheck.map(() => [])
-      : []
-  );
-  const [trackingData, setTrackingData] = useState({
-    TrackPSN: "",
-    TrackReference: "",
-    TrackingWO: "",
-    TrackingLastStationId: "",
-    TrackingResult: "",
-    TrackingStatus: "",
-    DataTrackCheckings: [],
-  });
-  const [isLoading, setIsLoading] = useState(false);
+
   const [isWoRunning, setIsWoRunning] = useState(
     localStorage.getItem("woStartRun") === "true"
   );
@@ -111,15 +80,12 @@ export default function Dashboard() {
       // focusInput
     }
   };
-  let token = localStorage.getItem("token");
- 
   const [dataTracks, setDataTracks] = useState([]);
-
   const [searchQuery, setSearchQuery] = useState("");
   const fetchDataTracks = async (pageNumber = 1, pageSize = 10) => {
     try {
       const response = await axios.get(
-        `${api}/api/DataTracks/order/${selectedData.WoNumber}`,
+        `${api}/api/DataTracks`,
         {
           params: {
             searchQuery: searchQuery,
@@ -162,52 +128,7 @@ export default function Dashboard() {
   };
    
   
-  const fetchDataParam = async () => {
-    try {
-      const response = await axios.get(`${api}/api/Datareference/${refId}`);
-
-      const parameterChecks =
-        response.data.DataReferenceParameterChecks.$values;
-
-      // Membuat objek baru untuk menyimpan ParameterCheck
-      const newData = { ParameterCheck: [] };
-      setTopError(response.data.TopErrors.$values);
-      // Menambahkan ParameterCheck ke dalam newData.ParameterCheck
-      parameterChecks.forEach((item) => {
-        if (item.ParameterCheck) {
-          newData.ParameterCheck.push(item.ParameterCheck);
-        }
-      });
-
-      // Memperbarui state apiData dengan newData
-      setApiData(newData);
-
-      setDataTrackCheckings(
-        response.data.DataReferenceParameterChecks.$values.map((check) => {
-          return {
-            PCID: check.ParameterCheck.Id,
-            Result: "",
-            ErrorId: null,
-            Approve: false,
-            ApprovalId: null,
-            ApprRemaks: "",
-          };
-        })
-      );
-    } catch (error) {
-      toast.error(`Error fetching data: ${error.message}`, {});
-    }
-  };
-
-  const fetchDataWoParam = async (id) => {
-    try {
-      const response = await axios.get(`${api}/api/Wo/${id}`);
-
-      setSelectedData(response.data);
-    } catch (error) {
-      toast.error(`Error fetching data: ${error.message}`, {});
-    }
-  };
+ 
  
  
   
@@ -229,18 +150,9 @@ export default function Dashboard() {
 
   
 
-  useEffect(() => {
-    if (apiData && Array.isArray(apiData.ParameterCheck)) {
-      setParameterGalleries(
-        apiData.ParameterCheck.map((parameter) => parameter.ImageDataChecks)
-      );
-    } else {
-      setParameterGalleries([]);
-    }
-  }, [apiData]);
+
   useEffect(() => {
     fetchDataTracks();
-    fetchDataWoParam(selectedData.Id);
   }, []);
 
   return (

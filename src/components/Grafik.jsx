@@ -4,13 +4,14 @@ import 'react-datepicker/dist/react-datepicker.css';
 import Chart from 'react-apexcharts';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { HubConnectionBuilder, HubConnection } from '@microsoft/signalr';
+import * as signalR from '@microsoft/signalr';
+
 
 
 const Grafik = () => {
   const today = new Date();
   const sixMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 6, today.getDate());
-
+  const [connection, setConnection] = useState(null);
   const [startDate, setStartDate] = useState(sixMonthsAgo);
   const [endDate, setEndDate] = useState(today);
   const [productData, setProductData] = useState([]);
@@ -28,7 +29,6 @@ const Grafik = () => {
     fetchData();
    
   };
-  const [hubConnection, setHubConnection] = useState(null);
   const formatData = (data) => {
     const formattedData = [];
     const weekCounts = {};
@@ -79,40 +79,7 @@ const Grafik = () => {
   
     fetchData();
   
-    console.log('coba signalr');
-  
-    const buildConnection = async () => {
-      const connection = new HubConnectionBuilder()
-        .withUrl("https://localhost:5001/dataUpdateHub", {
-          withCredentials: true // Tambahkan opsi withCredentials di sini
-        })
-        .build();
-  
-      setHubConnection(connection);
-  
-      try {
-        await connection.start();
-        console.log('SignalR Connected');
-  
-        // Handle DataUpdated event
-        connection.on('DataUpdated', async (dataType) => {
-          console.log(`Data ${dataType} telah diperbarui`);
-          await fetchDataTrack(startDate, endDate);
-          await fetchDataError(startDate, endDate);
-        });
-      } catch (err) {
-        console.log('Error while starting SignalR connection: ', err);
-      }
-    };
-  
-    buildConnection();
-  
-    return () => {
-      // Cleanup SignalR connection when the component is unmounted
-      if (hubConnection) {
-        hubConnection.stop();
-      }
-    };
+   
   }, [startDate, endDate, api]);
   useEffect(() => {
     const fetchData = async () => {
@@ -121,9 +88,32 @@ const Grafik = () => {
     };
   
     fetchData();
-    
-  }, []);
+    const newConnection = new signalR.HubConnectionBuilder()
+      .withUrl(`${api}/notificationHub`)
+      .withAutomaticReconnect()
+      .build();
 
+    setConnection(newConnection);
+  }, []);
+  useEffect(() => {
+    if (connection) {
+      connection.start()
+        .then(() => {
+
+          connection.on('ReceiveUpdateDataNotification', (message) => {
+            const fetchData = async () => {
+              await fetchDataTrack(startDate, endDate);
+              await fetchDataError(startDate, endDate);
+            };
+          
+            fetchData();
+            // Lakukan tindakan yang diperlukan setelah menerima notifikasi
+            // Misalnya, memperbarui state atau memunculkan notifikasi
+          });
+        })
+        .catch(err => console.error('Error connecting to SignalR hub:', err));
+    }
+  }, [connection]);
   const productChartOptions = {
     chart: {
       type: 'bar',
