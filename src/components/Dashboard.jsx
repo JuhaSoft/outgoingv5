@@ -1,24 +1,44 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
-import { FaEye } from "react-icons/fa";
+import DatePicker from "react-datepicker";
+import { FaFileDownload, FaChevronDown,FaEye } from "react-icons/fa";
 import ReactPaginate from "react-paginate";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import _ from "lodash";
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 export default function Dashboard() {
   const appConfig = window.globalConfig || {
     siteName: process.env.REACT_APP_SITENAME,
   };
+  const today = new Date();
+
+  // Membuat objek Date baru berdasarkan hari ini
+  // const sixMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 6, today.getDate());
   const api = appConfig.APIHOST;
   const [totalRecord, setTotalRecord] = useState(0);
   const [pageCount, setpageCount] = useState(0);
-
+  const sixMonthsAgo = new Date(
+    today.getFullYear(),
+    today.getMonth() - 6,
+    today.getDate(),
+    today.getHours(),
+    today.getMinutes()
+  );
+  const [connection, setConnection] = useState(null);
+  const [startDate, setStartDate] = useState(sixMonthsAgo);
+  const [endDate, setEndDate] = useState(today);
   const [showImageModal, setShowImageModal] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentImageModalImages, setCurrentImageModalImages] = useState([]);
   const [detailDataMap, setDetailDataMap] = useState({});
+  const [pageSize, SetPageSize] = useState(10);
+  const [currentPage, SetCurrentPage] = useState(1);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
   // image
   const [zoom, setZoom] = useState(1);
   const [isPanning, setIsPanning] = useState(false);
@@ -28,7 +48,15 @@ export default function Dashboard() {
     setIsPanning(true);
     setStartPoint({ x: e.clientX - translate.x, y: e.clientY - translate.y });
   };
-
+  const handleSetDates = () => {
+    fetchDataTracks(
+      currentPage,
+      pageSize,
+      startDate,
+      endDate,
+      "handleSetDates"
+    );
+  };
   const handleMouseMove = (e) => {
     if (!isPanning) return;
     setTranslate({
@@ -63,45 +91,47 @@ export default function Dashboard() {
     }));
   };
 
-  
- 
   const [openCollapse, setOpenCollapse] = useState({});
-
-  const [isWoRunning, setIsWoRunning] = useState(
-    localStorage.getItem("woStartRun") === "true"
-  );
-  const handleRunStop = () => {
-    if (isWoRunning) {
-      localStorage.setItem("woStartRun", "false");
-      setIsWoRunning(false);
-    } else {
-      localStorage.setItem("woStartRun", "true");
-      setIsWoRunning(true);
-      // focusInput
-    }
-  };
   const [dataTracks, setDataTracks] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const fetchDataTracks = async (pageNumber = 1, pageSize = 10) => {
+  const fetchDataTracks = async (
+    pageNumber = 1,
+    pageSize = 10,
+    start,
+    end,
+    dari = ""
+  ) => {
+   
+    const startDateString = start.toISOString().split("T")[0];
+    const endDateString = end.toISOString().split("T")[0];
+     
     try {
-      const response = await axios.get(
-        `${api}/api/DataTracks`,
-        {
-          params: {
-            searchQuery: searchQuery,
-            pageNumber: pageNumber,
-            pageSize: pageSize,
-          },
-        }
-      );
+      const response = await axios.get(`${api}/api/DataTracks`, {
+        params: {
+          searchQuery: searchQuery,
+          pageNumber: pageNumber,
+          pageSize: pageSize,
+          Start: startDateString,
+          EndDate: endDateString,
+        },
+      });
       setDataTracks(response.data.DataTracks.$values);
       setTotalRecord(response.data.TotalItems);
       setpageCount(response.data.TotalPages);
     } catch (error) {}
   };
-  const handlePageClick = (data) => {
-    const currentPage = data.selected + 1;
-    fetchDataTracks(currentPage);
+   
+
+  const handlePageClick = async (data) => {
+    let currentPage = data.selected + 1;
+    fetchDataTracks(
+      currentPage,
+      pageSize,
+      startDate,
+      endDate,
+      "HandlePageClick"
+    );
+    SetCurrentPage(currentPage);
   };
   const fetchDetailData = async (id) => {
     try {
@@ -126,44 +156,172 @@ export default function Dashboard() {
     }));
     fetchDetailData(id);
   };
-   
-  
- 
- 
- 
-  
 
-   
+  const handlerecordPerPage = (event) => {
+    event.preventDefault();
+    const page = event.target.value;
+    SetPageSize(page);
+  };
 
-   
-   
- 
-   
-    
   const handleSearch = (event) => {
     event.preventDefault();
 
-    fetchDataTracks();
+    fetchDataTracks(currentPage, pageSize, startDate, endDate, "handlesearch");
   };
-  
-   
 
   
-
+  const handleClickOutside = (event) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      setShowDropdown(false);
+    }
+  };
+  // Tambahkan fungsi untuk mengunduh CSV
+  // const downloadCSV = (filename, data) => {
+  //   const csvData = convertToCSV(data);
+  //   const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
+  //   const url = URL.createObjectURL(blob);
+  //   const link = document.createElement("a");
+  //   link.setAttribute("href", url);
+  //   link.setAttribute("download", filename);
+  //   link.style.visibility = "hidden";
+  //   document.body.appendChild(link);
+  //   link.click();
+  //   document.body.removeChild(link);
+  // };
 
   useEffect(() => {
-    fetchDataTracks();
+    setStartDate(sixMonthsAgo);
+    fetchDataTracks(1, pageSize, sixMonthsAgo, endDate, "useEffect[]");
+    document.addEventListener("mousedown", handleClickOutside);
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
   }, []);
-
+  const customMapping = {
+    PSN: "TrackPSN",
+    reference: "TrackReference",
+    Order: "TrackingWO",
+    "Last Station": {
+      StationName: ["LastStationID", "StationName"],
+      Line: ["LastStationID", "DataLine", "LineName"]
+    },
+    "Date Create": "TrackingDateCreate",
+    Status: "TrackingStatus",
+    User: {
+      DisplayName: ["User", "DisplayName"]
+    }
+  };
+  
+  const getNestedValue = (obj, path) => {
+    if (typeof path === "string") {
+      return obj[path];
+    } else if (Array.isArray(path)) {
+      return path.reduce((prev, curr) => (prev ? prev[curr] : undefined), obj);
+    } else if (typeof path === "object") {
+      const keys = Object.keys(path);
+      const values = keys.map((key) => getNestedValue(obj, path[key]));
+      return values.join(" ");
+    }
+  };
+  
+  const convertToCSV = (data) => {
+    const csvRows = [];
+    const headers = Object.keys(customMapping).map(header =>
+      header.replace(/ /g, "_")
+    );
+    csvRows.push(headers.join(","));
+  
+    for (const row of data) {
+      const values = headers.map((header) => {
+        const originalHeader = header.replace(/_/g, " ");
+        let value = getNestedValue(row, customMapping[originalHeader]);
+  
+        if (originalHeader == "Date Create" && value) {
+          value = format(new Date(value), 'PPpp', { locale: id });
+        }
+  
+        // Escaping double quotes by doubling them
+        const escaped = value ? value.toString().replace(/"/g, '""') : "";
+        return `"${escaped}"`;
+      });
+      csvRows.push(values.join(","));
+    }
+  
+    return csvRows.join("\n");
+  };
+  
+  const downloadCSV = (filename, data) => {
+    const csvData = convertToCSV(data);
+    const blob = new Blob([csvData], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('href', url);
+    a.setAttribute('download', filename);
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+  
+  const handleDownloadCSV = async (option) => {
+    let dataToDownload;
+    if (option === "currentPage") {
+      dataToDownload = dataTracks;
+    } else if (option === "allPages") {
+      const startDateString = startDate.toISOString().split("T")[0];
+      const endDateString = endDate.toISOString().split("T")[0];
+      dataToDownload = await getAllData(searchQuery, startDateString, endDateString);
+    }
+    downloadCSV(`data_tracks_${option}.csv`, dataToDownload);
+    setShowDropdown(false);
+  };
+  
+  const getAllData = async (searchQuery, startDateString, endDateString) => {
+    try {
+      const response = await axios.get(`${api}/api/DataTracks`, {
+        params: {
+          searchQuery: searchQuery,
+          Start: startDateString,
+          EndDate: endDateString,
+        },
+      });
+      return response.data.DataTracks.$values;
+    } catch (error) {
+      toast.error("Error fetching data for CSV");
+      return [];
+    }
+  };
   return (
     <div className="z-0 ">
       <div className="flex items-center gap-3 mb-2 bg-green-500 text-white  pl-2 rounded-2xl">
         <span className="text-2xl py-2">Data</span>
       </div>
 
-     
-
       <div className="container mx-auto bg-blue-400 rounded-lg p-2">
+        <div className="flex items-center gap-3 mb-2 bg-green-500 text-white py-3 pl-2 rounded-2xl">
+          <div className="flex items-center">
+            <label className="mr-2">Start:</label>
+            <DatePicker
+              selected={startDate}
+              onChange={(date) => setStartDate(date)}
+              dateFormat="yyyy-MM-dd"
+              className="border border-gray-300 rounded-md px-2 py-1 text-black"
+            />
+          </div>
+          <div className="flex items-center">
+            <label className="mr-2">End:</label>
+            <DatePicker
+              selected={endDate}
+              onChange={(date) => setEndDate(date)}
+              dateFormat="yyyy-MM-dd"
+              className="border border-gray-300 rounded-md px-2 py-1 text-black"
+            />
+          </div>
+          <button
+            onClick={handleSetDates}
+            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+          >
+            Set
+          </button>
+        </div>
         <div className="relative flex-grow  sm:w-3/4 md:w-auto mb-2">
           <form
             className="max-w-lg mx-auto md:flex md:items-center md:flex-row-reverse items-center "
@@ -270,7 +428,6 @@ export default function Dashboard() {
                         >
                           <FaEye size={20} title="Detail" />
                         </button>
-                        
                       </div>
                     </td>
                   </tr>
@@ -502,7 +659,7 @@ export default function Dashboard() {
               <select
                 name="item"
                 className="  w-16   text-base   bg-white text-gray-800 border border-green-700 rounded items-center   align-middle  justify-start"
-                // onChange={(e) => handlerecordPerPage(e)}
+                onChange={(e) => handlerecordPerPage(e)}
               >
                 <option>10</option>
                 <option>20</option>
@@ -544,6 +701,35 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      <div className="mt-3">
+      <div className="relative" ref={dropdownRef}>
+    <button
+      className="px-4 py-2 bg-green-500 text-white rounded-md flex items-center ml-1"
+      onClick={() => setShowDropdown(!showDropdown)}
+    >
+      <FaFileDownload className="mr-2" />
+      Download CSV
+      <FaChevronDown className="ml-2" />
+    </button>
+    {showDropdown && (
+      <div className="absolute left-11 w-48 bg-white rounded-md shadow-lg z-10">
+        <div
+          className="py-1 cursor-pointer hover:bg-gray-100 px-2"
+          onClick={() => handleDownloadCSV("currentPage")}
+        >
+          Current Page
+        </div>
+        <div
+          className="py-1 cursor-pointer hover:bg-gray-100 px-2"
+          onClick={() => handleDownloadCSV("allPages")}
+        >
+          All Pages
+        </div>
+      </div>
+    )}
+  </div>
+      </div>
+      
     </div>
   );
 }

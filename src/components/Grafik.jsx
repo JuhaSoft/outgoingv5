@@ -10,7 +10,7 @@ import * as signalR from '@microsoft/signalr';
 
 const Grafik = () => {
   const today = new Date();
-  const sixMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 6, today.getDate());
+  const sixMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 6, today.getDate(), today.getHours(), today.getMinutes());
   const [connection, setConnection] = useState(null);
   const [startDate, setStartDate] = useState(sixMonthsAgo);
   const [endDate, setEndDate] = useState(today);
