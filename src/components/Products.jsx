@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import { RingLoader } from "react-spinners";
 // import CarouselGallery from '../components/CarouselGallery';
 import ImageModal from "./ImageModal";
 import Webcam from "react-webcam";
@@ -18,6 +19,7 @@ export default function Products() {
   };
   const api = appConfig.APIHOST;
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [totalRecord, setTotalRecord] = useState(0);
   const [pageCount, setpageCount] = useState(0);
   const [psnEdit, setPsnEdit] = useState("");
@@ -343,6 +345,8 @@ export default function Products() {
     const allPassed = dataTrackCheckings.every(
       (item) => item.Result === "Pass" || item.Result === "PASS"
     );
+    setIsSubmitting(true);
+    setIsLoading(true);
     const updatedTrackingData = {
       ...trackingData,
       TrackingResult: allPassed ? "PASS" : "FAIL",
@@ -376,18 +380,26 @@ export default function Products() {
 
       if (response.status === 200) {
         // Penanganan sukses
-        toast.success("Data berhasil dikirim ke server");
+        setIsLoading(false);
         fetchDataWoParam(selectedData.Id);
         setShowModal(false);
         fetchDataTracks();
         setOpenCollapse({});
+        setIsSubmitting(false);
+        toast.success("Data berhasil dikirim ke server");
+
         // Lakukan tindakan lain yang diperlukan setelah berhasil
       } else {
+        setIsSubmitting(false);
+        setIsLoading(false);
+
         // Penanganan error
         toast.error("Error saat mengirim data ke server 1");
         // Lakukan tindakan lain yang diperlukan saat terjadi error
       }
     } catch (error) {
+      setIsSubmitting(false);
+      setIsLoading(false);
       toast.error("Error saat mengirim data ke server:", error.message);
       // Lakukan tindakan lain yang diperlukan saat terjadi error
     }
@@ -425,7 +437,7 @@ export default function Products() {
     const allPassed = dataTrackCheckings.every(
       (item) => item.Result === "Pass" || item.Result === "PASS"
     );
-
+    setIsLoading(true);
     const updatedData = {
       ...editingData,
       TrackingResult: allPassed ? "PASS" : "FAIL",
@@ -456,15 +468,20 @@ export default function Products() {
       );
 
       if (response.status === 200) {
+        setIsLoading(false);
         toast.success("Data berhasil diupdate");
         closeModal();
         setEditingData(null);
         setOpenCollapse({});
         fetchDataTracks(); // Refresh data setelah update
       } else {
+        setIsLoading(false);
+
         toast.error("Gagal mengupdate data");
       }
     } catch (error) {
+      setIsLoading(false);
+
       toast.error("Terjadi kesalahan saat mengupdate data");
     }
   };
@@ -521,7 +538,6 @@ export default function Products() {
   };
   const processPSN = async () => {
     setApiData(null);
-    setIsLoading(true);
     if (await verifyData()) {
       try {
         const response = await fetch(
@@ -546,7 +562,6 @@ export default function Products() {
             TrackingLastStationId: ReferenceData.LastStationID.Id,
           }));
           setErrorProduct("");
-          setIsLoading(false); // Set isLoading menjadi false setelah selesai fetching
           setParameterGalleries(
             apiData && apiData.ParameterCheck
               ? apiData.ParameterCheck.map(() => [])
@@ -563,9 +578,8 @@ export default function Products() {
         setResult("");
         setErrorProduct("Error fetching data");
         setPsnBarcode("");
-        setIsLoading(false);
       } finally {
-        setIsLoading(false); // Set isLoading menjadi false setelah selesai fetching
+        // setIsLoading(false); // Set isLoading menjadi false setelah selesai fetching
       }
     } else {
     }
@@ -654,7 +668,7 @@ export default function Products() {
   }, [apiData]);
   useEffect(() => {
     fetchDataTracks();
-    if(selectedData){
+    if (selectedData) {
       fetchDataWoParam(selectedData.Id);
     }
   }, []);
@@ -734,14 +748,15 @@ export default function Products() {
           </div>
         </div>
       )}
-      
+
       <div
         className={`w-full mx-1 mb-1 overflow-hidden rounded-lg shadow-lg bg-green-300 ${
           isWoRunning ? "" : "hidden"
         }`}
       >
-        
-        <div className={`flex items-center p-2 ${selectedData?"":"hidden"}`}>
+        <div
+          className={`flex items-center p-2 ${selectedData ? "" : "hidden"}`}
+        >
           <input
             name="inputPSN"
             className="flex-grow px-4 py-2 border rounded-l"
@@ -777,6 +792,11 @@ export default function Products() {
 
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-gray-500 bg-opacity-50 z-50 ">
+          {isLoading && (
+            <div className="fixed inset-0 flex items-center justify-center z-50">
+              <RingLoader color="#36d7b7" size={50} />
+            </div>
+          )}
           <div className="bg-white p-6  shadow-lg w-full relative rounded-xl m-4">
             <h2 className="text-lg font-bold mb-4">
               {editingData
@@ -792,12 +812,13 @@ export default function Products() {
                   <div
                     key={index}
                     className="flex flex-col md:flex-row items-center mb-4 space-y-2 md:space-y-0 md:space-x-4"
+                    // className="flex flex-col md:flex-row items-center mb-4 space-y-2 md:space-y-0 md:space-x-4"
                   >
-                    <label className="w-1/9 font-medium">
+                    <label className="w-1/12 font-medium">
                       {check.Description}
                     </label>
                     <select
-                      className="w-1/9 p-2 border border-gray-300 rounded"
+                      className="w-1/12 p-2 border border-gray-300 rounded"
                       value={
                         dataTrackCheckings.find(
                           (item) => item.PCID === check.Id
@@ -820,9 +841,9 @@ export default function Products() {
                       <option value="Fail">Fail</option>
                     </select>
                     {/* Hidden select element */}
-                    <div className="w-1/9">
+                    <div className="w-1/12">
                       <select
-                        className="w-1/9 p-2 border border-gray-300 rounded"
+                        className="w-1/12 p-2 border border-gray-300 rounded"
                         value={(() => {
                           const errorId = dataTrackCheckings.find(
                             (item) => item.PCID == check.Id
@@ -902,7 +923,7 @@ export default function Products() {
                       </select>
                     </div>
 
-                    <div className="w-1/9">
+                    <div className="w-1/12">
                       {check.ImageSampleUrl && (
                         <img
                           src={`${api}${check.ImageSampleUrl}`}
@@ -916,7 +937,7 @@ export default function Products() {
                       )}
                     </div>
 
-                    <div className="w-3/9">
+                    <div className="w-4/12">
                       <div className="flex items-center">
                         <div className="mt-1 flex items-center">
                           <button
@@ -1130,48 +1151,28 @@ export default function Products() {
               })}
             {showEnlargedModal && (
               <div className="fixed inset-0 flex items-center justify-center z-50 bg-gray-800 bg-opacity-75">
-              <div className="relative w-full h-full max-w-4xl max-h-4xl overflow-hidden flex items-center justify-center">
-                <div
-                  className="relative flex items-center justify-center overflow-hidden w-full h-full"
-                  style={{
-                    cursor: "grab",
-                    transform: `scale(${zoom}) translate(${translate.x}px, ${translate.y}px)`,
-                    transformOrigin: "center center",
-                  }}
-                  onMouseDown={(e) => handleMouseDown(e)}
-                  onMouseMove={(e) => handleMouseMove(e)}
-                  onMouseUp={() => handleMouseUp()}
-                  onMouseLeave={() => handleMouseLeave()}
-                >
-                  <img
-                    src={enlargedImage}
-                    alt="Enlarged Image"
-                    className="max-w-full max-h-full object-contain"
-                  />
-                </div>
-                <button
-                  className="absolute top-0 right-0 m-2 text-white hover:text-gray-300 bg-red-700 rounded-full p-2 z-51"
-                  onClick={() => setShowEnlargedModal(false)}
-                >
-                  <svg
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+                <div className="relative w-full h-full max-w-4xl max-h-4xl overflow-hidden flex items-center justify-center">
+                  <div
+                    className="relative flex items-center justify-center overflow-hidden w-full h-full"
+                    style={{
+                      cursor: "grab",
+                      transform: `scale(${zoom}) translate(${translate.x}px, ${translate.y}px)`,
+                      transformOrigin: "center center",
+                    }}
+                    onMouseDown={(e) => handleMouseDown(e)}
+                    onMouseMove={(e) => handleMouseMove(e)}
+                    onMouseUp={() => handleMouseUp()}
+                    onMouseLeave={() => handleMouseLeave()}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
+                    <img
+                      src={enlargedImage}
+                      alt="Enlarged Image"
+                      className="max-w-full max-h-full object-contain"
                     />
-                  </svg>
-                </button>
-               
-                <div className="absolute bottom-0 left-0 m-2 flex space-x-2 z-51">
+                  </div>
                   <button
-                    className="text-white hover:text-gray-300 bg-blue-500 rounded-full p-2"
-                    onClick={handleZoomIn}
+                    className="absolute top-0 right-0 m-2 text-white hover:text-gray-300 bg-red-700 rounded-full p-2 z-51"
+                    onClick={() => setShowEnlargedModal(false)}
                   >
                     <svg
                       className="h-6 w-6"
@@ -1183,34 +1184,55 @@ export default function Products() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M12 4v16m8-8H4"
+                        d="M6 18L18 6M6 6l12 12"
                       />
                     </svg>
                   </button>
-                  <button
-                    className="text-white hover:text-gray-300 bg-blue-500 rounded-full p-2"
-                    onClick={handleZoomOut}
-                  >
-                    <svg
-                      className="h-6 w-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+
+                  <div className="absolute bottom-0 left-0 m-2 flex space-x-2 z-51">
+                    <button
+                      className="text-white hover:text-gray-300 bg-blue-500 rounded-full p-2"
+                      onClick={handleZoomIn}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M20 12H4m16 0H4"
-                      />
-                    </svg>
-                  </button>
+                      <svg
+                        className="h-6 w-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v16m8-8H4"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      className="text-white hover:text-gray-300 bg-blue-500 rounded-full p-2"
+                      onClick={handleZoomOut}
+                    >
+                      <svg
+                        className="h-6 w-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M20 12H4m16 0H4"
+                        />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
             )}
             <div className="flex justify-between items-end mt-5">
               <button
+                disabled={isSubmitting}
                 type="submit"
                 onClick={editingData ? handleUpdateData : handleSubmit}
                 className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"

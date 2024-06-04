@@ -13,7 +13,8 @@ import {
   HiOutlineAnnotation,
   HiOutlineQuestionMarkCircle,
 } from "react-icons/hi";
-import { GrUserSettings } from "react-icons/gr";
+
+import { GrUserSettings,GrDocumentConfig } from "react-icons/gr";
 import { FaGripLines } from "react-icons/fa";
 import { FaRegCircleUser } from "react-icons/fa6";
 import { HiOutlineCog } from "react-icons/hi";
@@ -52,6 +53,7 @@ const iconMap = {
   BiPurchaseTagAlt: BiPurchaseTagAlt,
   MdOutlineDataset: MdOutlineDataset,
   FcProcess: FcProcess,
+  GrDocumentConfig:GrDocumentConfig,
 };
 
 const SidebarCollapse = () => {
@@ -192,7 +194,9 @@ const SidebarCollapse = () => {
       </div>
 
       <ul className="pt-6">
-        {menuData.map((menu) => (
+      {menuData
+    .filter((menu) => hasAccess(menu.Role || ["All"]))
+    .map((menu) => (
           <React.Fragment key={menu.id}>
             <li
               className={`text-sm flex items-center gap-x-4 cursor-pointer p-2 rounded-l-full ${
@@ -228,7 +232,9 @@ const SidebarCollapse = () => {
               <ul
                 className={`${activeMenu === menu.id ? "block" : "hidden"}  `}
               >
-                {menu.subMenus.map((subMenu) => (
+                {menu.subMenus
+              .filter((subMenu) => hasAccess(subMenu.Role || ["All"]))
+              .map((subMenu) =>(
                   <li
                     key={subMenu.id}
                     className={`text-sm flex items-center gap-x-4 cursor-pointer ml-5  p-2 ${
@@ -262,9 +268,9 @@ const SidebarCollapse = () => {
                   </li>
                 ))}
               </ul>
-            )}
-          </React.Fragment>
-        ))}
+             )}
+             </React.Fragment>
+           ))}
       </ul>
 
       {/* Floating Menu untuk Profile */}

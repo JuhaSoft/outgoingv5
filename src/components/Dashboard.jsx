@@ -10,12 +10,14 @@ import "slick-carousel/slick/slick-theme.css";
 import _ from "lodash";
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { saveAs } from 'file-saver';
+import Papa from 'papaparse';
 export default function Dashboard() {
   const appConfig = window.globalConfig || {
     siteName: process.env.REACT_APP_SITENAME,
   };
   const today = new Date();
-
+  const [csvData, setCsvData] = useState('');
   // Membuat objek Date baru berdasarkan hari ini
   // const sixMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 6, today.getDate());
   const api = appConfig.APIHOST;
@@ -121,7 +123,7 @@ export default function Dashboard() {
     } catch (error) {}
   };
    
-
+console.log('dataTracks',dataTracks)
   const handlePageClick = async (data) => {
     let currentPage = data.selected + 1;
     fetchDataTracks(
@@ -223,8 +225,7 @@ export default function Dashboard() {
       return values.join(" ");
     }
   };
-  
-  const convertToCSV = (data) => {
+   const convertToCSV = (data) => {
     const csvRows = [];
     const headers = Object.keys(customMapping).map(header =>
       header.replace(/ /g, "_")
@@ -249,16 +250,352 @@ export default function Dashboard() {
   
     return csvRows.join("\n");
   };
+
+
+  const exportToCSV = (data) => {
+    const headers = 'TrackPSN,TrackReference,TrackingWO,LastStationID.StationName,LastStationID.DataLine.LineName,TrackingDateCreate,TrackingResult,User.UserName,DataTrackCheckings.values.ParameterCheck.Description,DataTrackCheckings.values.DTCValue\n';
+    let csvRows = [];
   
+    data.forEach((item) => {
+      const {
+        TrackPSN,
+        TrackReference,
+        TrackingWO,
+        LastStationID,
+        TrackingDateCreate,
+        TrackingResult,
+        User,
+        DataTrackCheckings,
+      } = item;
+  
+      DataTrackCheckings.$values.forEach((dtc) => {
+        const row = `"${TrackPSN}","${TrackReference}","${TrackingWO}","${LastStationID.StationName}","${LastStationID.DataLine.LineName}","${TrackingDateCreate}","${TrackingResult}","${User.UserName}","${dtc.ParameterCheck.Description}","${dtc.DTCValue}\n`;
+        csvRows.push(row);
+      });
+    });
+  
+    const csvDataString = headers + csvRows.join('');
+    setCsvData(csvDataString);
+  };
+  const downloadCSV2 = (data) => {
+    const headers = 'TrackPSN,TrackReference,TrackingWO,LastStationID.StationName,LastStationID.DataLine.LineName,TrackingDateCreate,TrackingResult,User.UserName,DataTrackCheckings.values.ParameterCheck.Description,DataTrackCheckings.values.DTCValue\n';
+    let csvRows = [];
+  
+    data.forEach((item) => {
+      const {
+        TrackPSN,
+        TrackReference,
+        TrackingWO,
+        LastStationID,
+        TrackingDateCreate,
+        TrackingResult,
+        User,
+        DataTrackCheckings,
+      } = item;
+  
+      DataTrackCheckings.$values.forEach((dtc) => {
+        const row = `"${TrackPSN}","${TrackReference}","${TrackingWO}","${LastStationID.StationName}","${LastStationID.DataLine.LineName}","${TrackingDateCreate}","${TrackingResult}","${User.UserName}","${dtc.ParameterCheck.Description}","${dtc.DTCValue}\n`;
+        csvRows.push(row);
+      });
+    });
+  
+    const csvDataString = headers + csvRows.join('');
+    setCsvData(csvDataString);
+    const blob = new Blob([csvDataString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'data.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+  // const customMapping = {
+  //   PSN: "TrackPSN",
+  //   reference: "TrackReference",
+  //   Order: "TrackingWO",
+  //   "Last Station": {
+  //     StationName: ["LastStationID", "StationName"],
+  //     Line: ["LastStationID", "DataLine", "LineName"],
+  //   },
+  //   "Date Create": "TrackingDateCreate",
+  //   Status: "TrackingStatus",
+  //   User: { DisplayName: ["User", "DisplayName"] },
+  //   DataTrackCheckings: ["$values", { Description: ["ParameterCheck", "Description"], Value: ["DTCValue"] }],
+  // };
+   
+  // const getNestedValue = (obj, path) => {
+  //   if (typeof path === "string") {
+  //     return obj[path];
+  //   } else if (Array.isArray(path)) {
+  //     if (typeof path[0] === "object") {
+  //       // Menangani kasus di mana path adalah array yang berisi objek
+  //       const values = [];
+  //       const keys = Object.keys(path[0]);
+  //       for (const key of keys) {
+  //         const nestedPath = path[0][key];
+  //         const value = getNestedValue(obj, nestedPath);
+  //         values.push(value);
+  //       }
+  //       return values.join(" ");
+  //     } else {
+  //       // Menangani kasus di mana path adalah array biasa
+  //       let value = obj;
+  //       for (const key of path) {
+  //         if (value && typeof value === "object") {
+  //           value = value[key];
+  //         } else {
+  //           return "";
+  //         }
+  //       }
+  //       return value;
+  //     }
+  //   } else if (typeof path === "object") {
+  //     const keys = Object.keys(path);
+  //     const values = keys.map((key) => getNestedValue(obj, path[key]));
+  //     return values.join(" ");
+  //   }
+  // };
+ 
+  // const convertToCSV = (data) => {
+  //   const csvRows = [];
+  //   const headers = Object.keys(customMapping).flatMap((header) => {
+  //     if (header === "DataTrackCheckings") {
+  //       const subHeaders = customMapping[header][1]
+  //         ? Object.keys(customMapping[header][1]).flatMap((key, index) =>
+  //             `${header} ${index + 1} ${key}`.split(" ").map((part) => part.replace(/_/g, " "))
+  //           )
+  //         : [];
+  //       return subHeaders;
+  //     }
+  //     return header.replace(/ /g, "_");
+  //   });
+  
+  //   csvRows.push(headers.join(","));
+  
+  //   for (const row of data) {
+  //     const values = headers.map((header) => {
+  //       if (header.startsWith("DataTrackCheckings")) {
+  //         const [_, index, key] = header.split(" ");
+  //         const trackCheckingIndex = parseInt(index, 10) - 1;
+  //         const trackCheckingData = getNestedValue(row.DataTrackCheckings, customMapping.DataTrackCheckings[0]);
+  //         const value =
+  //           trackCheckingData?.[trackCheckingIndex]?.[customMapping.DataTrackCheckings[1][key].join(".")] || "";
+  //         return `"${value}"`;
+  //       }
+  
+  //       const originalHeader = header.replace(/_/g, " ");
+  //       let value = getNestedValue(row, customMapping[originalHeader]);
+  //       if (originalHeader === "Date Create" && value) {
+  //         value = format(new Date(value), "PPpp", { locale: id });
+  //       }
+  //       const escaped = value ? value.toString().replace(/"/g, '""') : "";
+  //       return `"${escaped}"`;
+  //     });
+  //     csvRows.push(values.join(","));
+  //   }
+  
+  //   return csvRows.join("\n");
+  // };
+  
+
+  const handleExportAndDownloadCSV = (Dataat) => {
+    const headers = '"PSN","Ref","WO","Station Name","Line Name","Tracking Date","Result","Username","Parameter Description","DTC Value","Error Code","Error Description","Approved"\n';
+  
+    const handleNullOrUndefined = (value) => {
+      if (value === null || value === undefined || value === 0) {
+        return '-'; // Mengganti nilai null, undefined, atau 0 dengan tanda "-"
+      }
+      return value;
+    };
+  
+    const handleUserNameValue = (userName) => {
+      if (userName === null || userName === undefined) {
+        return '-'; // Mengganti nilai userName null atau undefined dengan tanda "-"
+      }
+      if (userName === '') {
+        return 'Username'; // Mengganti nilai userName kosong dengan "Username"
+      }
+      return userName;
+    };
+  
+    let csvRows = [];
+    Dataat.forEach((item) => {
+      const {
+        TrackPSN,
+        TrackReference,
+        TrackingWO,
+        LastStationID,
+        TrackingDateCreate,
+        TrackingResult,
+        User,
+        DataTrackCheckings,
+      } = item;
+  
+      DataTrackCheckings.$values.forEach((dtc) => {
+        const trackingDateCreateFormatted = new Date(TrackingDateCreate).toLocaleString('id-ID', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        });
+  
+        // const row = `"${TrackPSN}","${TrackReference}","${TrackingWO}","${LastStationID.StationName}","${LastStationID.DataLine.LineName}","${trackingDateCreateFormatted}","${TrackingResult}","${handleUserNameValue(User?.UserName)}","${handleNullOrUndefined(dtc.ParameterCheck.Description)}","${handleNullOrUndefined(dtc.DTCValue)}","${handleNullOrUndefined(dtc.ErrorMessage?.ErrorCode)}","${handleNullOrUndefined(dtc.ErrorMessage?.ErrorDescription)}"\n`;
+        const row = `"${TrackPSN}","${TrackReference}","${TrackingWO}","${LastStationID.StationName}","${LastStationID.DataLine.LineName}","${trackingDateCreateFormatted}","${TrackingResult}","${handleUserNameValue(User?.UserName)}","${handleNullOrUndefined(dtc.ParameterCheck.Description)}","${handleNullOrUndefined(dtc.DTCValue)}","${handleNullOrUndefined(dtc.ErrorMessage ? dtc.ErrorMessage.ErrorCode : '')}","${handleNullOrUndefined(dtc.ErrorMessage ? dtc.ErrorMessage.ErrorDescription : '')}","${handleNullOrUndefined(dtc.Approver ? dtc.Approver.UserName : '')}"\n`;
+        csvRows.push(row);
+      });
+    });
+  
+    const csvDataString = headers + csvRows.join('');
+    const blob = new Blob([csvDataString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'data.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+
+  // const handleExportAndDownloadCSV = (Dataat) => {
+  //   console.log('Dataat',Dataat)
+  //   const headers = '"PSN","Ref","WO","Station Name","Line Name","Tracking Date","Result","User name","Parameter Description","DTC Value"\n';
+  //   const handleNullValue = (value) => {
+  //     if (value === null || value === undefined) {
+  //       return '-'; // Mengganti nilai null dengan tanda "-"
+  //     }
+  //     return value;
+  //   };
+  
+  //   const handleUserNameValue = (userName) => {
+  //     if (userName === null || userName === undefined) {
+  //       return '-'; // Mengganti nilai userName null dengan tanda "-"
+  //     }
+  
+  //     if (userName === '') {
+  //       return 'Username'; // Mengganti nilai userName kosong dengan "Username"
+  //     }
+  
+  //     return userName;
+  //   };
+  
+  //   const handleNullValueWithDescription = (value) => {
+  //     if (value === null || value === undefined) {
+  //       return '-'; // Mengganti nilai null dengan tanda "-"
+  //     }
+  
+  //     if (value === '') {
+  //       return 'Description'; // Mengganti nilai kosong dengan "Description"
+  //     }
+  
+  //     return value;
+  //   };
+  //   let csvRows = [];
+
+  //   Dataat.forEach((item) => {
+  //     const {
+  //       TrackPSN,
+  //       TrackReference,
+  //       TrackingWO,
+  //       LastStationID,
+  //       TrackingDateCreate,
+  //       TrackingResult,
+  //       User,
+  //       DataTrackCheckings,
+  //     } = item;
+  
+  //     DataTrackCheckings.$values.forEach((dtc) => {
+  //       const trackingDateCreateFormatted = new Date(TrackingDateCreate).toLocaleString('id-ID', {
+  //         year: 'numeric',
+  //         month: '2-digit',
+  //         day: '2-digit',
+  //         hour: '2-digit',
+  //         minute: '2-digit',
+  //         second: '2-digit',
+  //       });
+  //       const row = `"${TrackPSN}","${TrackReference}","${TrackingWO}","${LastStationID.StationName}","${LastStationID.DataLine.LineName}","${trackingDateCreateFormatted}","${TrackingResult}","${handleUserNameValue(User.UserName)}","${handleNullValueWithDescription(dtc.ParameterCheck.Description)}","${dtc.DTCValue}"\n`;
+  //       csvRows.push(row);
+  //     });
+  //   });
+  
+  //   const csvDataString = headers + csvRows.join('');
+  
+  //   const blob = new Blob([csvDataString], { type: 'text/csv;charset=utf-8;' });
+  //   const url = URL.createObjectURL(blob);
+  //   const link = document.createElement('a');
+  //   link.setAttribute('href', url);
+  //   link.setAttribute('download', 'data.csv');
+  //   link.style.visibility = 'hidden';
+  //   document.body.appendChild(link);
+  //   link.click();
+  //   document.body.removeChild(link);
+  // };
+
+  const flattenObject = (obj, parent = '', res = {}) => {
+    for (let key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            let propName = parent ? parent + '.' + key : key;
+            if (Array.isArray(obj[key])) {
+                // Handle array with specific properties
+                obj[key].forEach((item, index) => {
+                    res[`${propName}[${index}].DTCValue`] = item.DTCValue;
+                    res[`${propName}[${index}].ParameterCheck.Description`] = item.ParameterCheck?.Description;
+                });
+            } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+                flattenObject(obj[key], propName, res);
+            } else {
+                res[propName] = obj[key];
+            }
+        }
+    }
+    return res;
+};
+
+const convertToCSV2 = () => {
+    const flattenedData = dataTracks.map(item => flattenObject(item));
+    const csv = Papa.unparse(flattenedData);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, 'data.csv');
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const downloadCSV = (filename, data) => {
-    const csvData = convertToCSV(data);
-    const blob = new Blob([csvData], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.setAttribute('href', url);
-    a.setAttribute('download', filename);
-    a.click();
-    window.URL.revokeObjectURL(url);
+    // const csvData = convertToCSV(data);
+    console.log('data',data)
+    handleExportAndDownloadCSV(data)
+    // const csvData = handleExportAndDownloadCSV(data);
+    // const blob = new Blob([csvData], { type: 'text/csv' });
+    // const url = window.URL.createObjectURL(blob);
+    // const a = document.createElement('a');
+    // a.setAttribute('href', url);
+    // a.setAttribute('download', filename);
+    // a.click();
+    // window.URL.revokeObjectURL(url);
   };
   
   const handleDownloadCSV = async (option) => {
@@ -269,6 +606,7 @@ export default function Dashboard() {
       const startDateString = startDate.toISOString().split("T")[0];
       const endDateString = endDate.toISOString().split("T")[0];
       dataToDownload = await getAllData(searchQuery, startDateString, endDateString);
+      console.log('dataToDownload',dataToDownload)
     }
     downloadCSV(`data_tracks_${option}.csv`, dataToDownload);
     setShowDropdown(false);
@@ -711,6 +1049,9 @@ export default function Dashboard() {
       Download CSV
       <FaChevronDown className="ml-2" />
     </button>
+    {/* <div>
+            <button onClick={convertToCSV2}>Download CSV</button>
+        </div> */}
     {showDropdown && (
       <div className="absolute left-11 w-48 bg-white rounded-md shadow-lg z-10">
         <div

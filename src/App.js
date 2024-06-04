@@ -21,6 +21,7 @@ import EditProfileForm from './components/Users/EditProfileForm'
 import ChangePassword from './components/Users/ChangePassword'
 import Errors from './components/Errors'
 import Grafik from './components/Grafik'
+import WebConfig from './components/WebConfig'
 // import CollapsibleTable from './components/CollapsibleTable'
 
 const App = () => {
@@ -35,6 +36,7 @@ const App = () => {
         <Route path='Lines' element={<Lines />} />
         <Route path='Errors' element={<Errors />} />
         <Route path='References' element={<References />} />
+        <Route path='WebCon' element={<WebConfig />} />
         <Route path='Parameters' element={<Parameters />} />
         <Route path='LastStations' element={<LastStations />} />
         <Route path='LoadingPage' element={<LoadingPage />} />

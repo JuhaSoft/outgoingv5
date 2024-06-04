@@ -3,67 +3,88 @@
     "id": 1,
     "label": "Dashboard",
     "icon": "FiHome",
-    "path": "/"
+    "path": "/",
+    "Role":"All"
   },
   {
     "id": 2,
     "label": "Data",
     "icon": "MdOutlineDataset",
-    "path": "/Datas"
+    "path": "/Datas",
+    "Role":"All"
   },
   {
     "id": 3,
     "label": "Order",
     "icon": "BiPurchaseTagAlt",
-    "path": "/orders"
+    "path": "/orders",
+    "Role":"All"
   },
   {
     "id": 4,
     "label": "Process",
     "icon": "FcProcess",
-    "path": "/products"
+    "path": "/products",
+    "Role":"All"
+    
   },
   {
     "id": 5,
     "label": "Settings",
     "icon": "FiSettings",
+    "Role":"Admin,staf",
     "subMenus": [
       
       {
         "id": 1,
         "label": "Reference",
         "icon": "FiFolder",
-        "path": "/References"
+        "path": "/References",
+        "Role":"Admin,staf"
       },
       {
         "id": 2,
         "label": "Parameter",
         "icon": "BsClipboard2Data",
-        "path": "/Parameters"
+        "path": "/Parameters",
+        "Role":"Admin,staf"
       },
       {
         "id": 3,
         "label": "Error Messege",
         "icon": "BiSolidMessageAltX",
-        "path": "/Errors"
+        "path": "/Errors",
+        "Role":"Admin,staf"
       },
       {
         "id": 4,
         "label": "Last Station",
         "icon": "MdTableRestaurant",
-        "path": "/LastStations"
+        "path": "/LastStations",
+        "Role":"Admin,staf"
       },
       {
         "id": 5,
         "label": "Line",
         "icon": "FaGripLines",
-        "path": "/Lines"
+        "path": "/Lines",
+        "Role":"Admin,staf"
       },
       {
         "id": 6,
         "label": "Users",
         "icon": "GrUserSettings",
-        "path": "/Users"
+        "path": "/Users",
+        "Role":"Admin,staf"
+
+      }
+      ,
+      {
+        "id": 7,
+        "label": "Web Config",
+        "icon": "GrDocumentConfig",
+        "path": "/WebCon",
+        "Role":"Admin"
       }
     ]
   }
